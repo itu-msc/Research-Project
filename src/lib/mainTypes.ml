@@ -26,3 +26,10 @@ let fa (f: 'a -> 'b) (x: 'a oe) : 'b oe =
 let ostar (f: ('a -> 'b) oa) (x: 'a oa) : 'b oa =
   fun () -> f () (x ()) (* TODO *)
 
+let rec switch (a::ax : 'a signal) (b : 'a signal oe) : 'a signal =
+  let cont (k: ('x signal, 'x signal) sync) : 'x signal  = 
+    match k with
+    | Fst xs -> switch xs b
+    | Snd (y) -> y
+    | Both (_, v) -> v in
+  a :: fa cont (Sync (ax, b))

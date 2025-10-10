@@ -6,30 +6,59 @@ type ('a, 'b) sync =
   | Both of 'a * 'b
 
 let delay a : 'a oa = fun () -> a
+let adv : 'a oa -> 'a = fun d -> d ()
 
 (* TODO *)
-type 'a channel = 'a 
+type 'a channel = Index of int
+let new_channel = 
+  let next = ref 0 in
+  fun () -> (let c = !next in next := !next + 1; Index c)
+
+let adv_channel (c : 'a channel) : 'a = match c with Index i -> Obj.magic "hii"
 
 type _ oe =
-| Never
-| App : ('a -> 'b) oa * 'a oe -> 'b oe   (* this is the O>*)
-| Sync : 'a oe * 'b oe -> ('a, 'b) sync oe
-| Wait : 'a channel -> 'a oe
-
-(* TODO *)
-type 'a signal = 
+  | Never
+  | App : ('a -> 'b) oa * 'a oe -> 'b oe   (* this is the O>*)
+  | Sync : 'a oe * 'b oe -> ('a, 'b) sync oe
+  | Wait : 'a channel -> 'a oe
+  (* Do these go here? *)
+  | Trig : 'a option signal -> 'a oe
+  | Tail : 'a signal -> 'a signal oe
+and
+ 'a signal = 
   | (::) of 'a * 'a signal oe
 
-let fa (f: 'a -> 'b) (x: 'a oe) : 'b oe =
-  App (delay f, x)
+let never = Never
+let app  = fun f x -> App (f, x)
+let sync = fun x y -> Sync (x, y)
+let wait = fun c -> Wait c
+let trig = fun s -> Trig s
+let tail = fun s -> Tail s
 
-let ostar (f: ('a -> 'b) oa) (x: 'a oa) : 'b oa =
-  fun () -> f () (x ()) (* TODO *)
+let fa f x = app (delay f) x
+let (|>) = fa
 
-let rec switch (a::ax : 'a signal) (b : 'a signal oe) : 'a signal =
-  let cont (k: ('x signal, 'x signal) sync) : 'x signal  = 
-    match k with
-    | Fst xs -> switch xs b
-    | Snd (y) -> y
-    | Both (_, v) -> v in
-  a :: fa cont (Sync (ax, b))
+let ostar (f: ('a -> 'b) oa) (x: 'a oa) : 'b oa = delay (adv f (adv x))
+
+let rec switch (x::xs) (d ) =
+  let cont = function
+    | Fst xs' -> switch xs' d
+    | Snd d' -> d'
+    | Both (_, d') -> d' in
+  x :: (cont |> (sync xs d))
+
+let const x = x :: Never
+
+let rec mkSig (k: 'a channel) : 'a signal oe = 
+  (fun a -> a :: (mkSig k)) |> wait k
+
+let rec map f (x :: xs) = f x :: (map f |> xs)
+
+(*TODO: this only type-checks because channel is id
+        mkSig takes a channel, but trig produces an ('a oe)
+*)
+(* let rec filter p s =
+  let map_maybe : ('a -> bool) -> 'a signal oe -> 'a option signal oe = 
+    fun f d -> map (fun x -> if f x then Some x else None) |> d
+  in
+  mkSig (Trig (None :: (map_maybe p s))) *)

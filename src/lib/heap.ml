@@ -11,7 +11,7 @@ and 'a payload = {
   mutable 
   head : 'a Weak.t; (* weak reference to head node *)
   tail : 'a signal oe Weak.t; (* weak reference to tail node *)
-  mutable updated : bool;         (* flag for "has been updated" *)
+  mutable updated : bool;         (* flag for "has been updated" *) (* should we move this to the node? *)
 }
 
 type 'a linkedList = {
@@ -69,9 +69,32 @@ let insert (s: 'a) (t: 'a signal oe) =
   heap.len <- heap.len + 1;
   ()
 
-let _delete = 0
-let _update = 0
-let _find (_label: int) = 0
+let delete (node: 'a node) =
+  match node.prev, node.next with
+  | Some p, Some n -> 
+      p.next <- Some n;
+      n.prev <- Some p;
+      heap.len <- heap.len - 1;
+      ()
+  | _ -> failwith "Heap invariant broken: node to delete has None prev or next"
+
+(* is this what we want?? *)
+let update (n: 'a node) (s: 'a) (t: 'a signal oe) =
+  Weak.set n.value.head 0 (Some s);
+  Weak.set n.value.tail 0 (Some t);
+  (* n.value.updated <- true; *)
+  ()
+
+let find (id: int) = 
+  let rec aux n =
+    match n with
+    | None -> None
+    | Some nn ->
+        if nn = heap.cursor then None
+        else if nn.id = id then Some nn
+        else aux nn.next in
+  aux heap.head
+
 (* let _iter f = ()  *)
 
 

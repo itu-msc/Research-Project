@@ -11,6 +11,7 @@ type ('a, 'b) sync =
 | Both of 'a * 'b
 
 val new_channel : unit -> 'a channel
+val adv_channel : 'a channel -> 'a
 
 val delay : 'a -> 'a oa
 val adv   : 'a oa -> 'a

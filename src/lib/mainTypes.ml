@@ -5,6 +5,10 @@ type ('a, 'b) sync =
   | Snd of 'b
   | Both of 'a * 'b
 
+
+(* a might get evaluated which we dont want, 
+   it might be worth checking if we can get call by name or use Lazy
+  https://stackoverflow.com/questions/71634864/does-ocaml-support-call-by-name-parameter-passing *)
 let delay a : 'a oa = fun () -> a
 let adv : 'a oa -> 'a = fun d -> d ()
 
@@ -14,7 +18,7 @@ let new_channel =
   let next = ref 0 in
   fun () -> (let c = !next in next := !next + 1; Index c)
 
-let adv_channel (c : 'a channel) : 'a = match c with Index i -> Obj.magic "hii"
+let adv_channel (c : 'a channel) : 'a = match c with Index _i -> Obj.magic "hii"
 
 type _ oe =
   | Never
@@ -50,7 +54,12 @@ let rec switch (x::xs) (d ) =
 let const x = x :: Never
 
 let rec mkSig (k: 'a channel) : 'a signal oe = 
-  (fun a -> a :: (mkSig k)) |> wait k
+  (fun a -> a :: mkSig k) |> wait k
+
+(* not correct as we dont have the correct *)
+(* let rec map_sig (f: 'a -> 'b) (s: 'a signal) : 'b signal =
+  match s with
+  | a :: ax -> f a :: fa (map_sig f) ax *)
 
 let rec map f (x :: xs) = f x :: (map f |> xs)
 

@@ -6,18 +6,18 @@ module SignalUtils = struct
   let hd_tail (s : 'a signal)  = 
     let id = match s with Identifier i -> i in
     let node = match find id with
-      | None -> failwith ("map: signal with id " ^ string_of_int id ^ " not found")
+      | None -> failwith ("SignalUtils: signal with id " ^ string_of_int id ^ " not found")
       | Some n -> n 
     in 
     (* must go through heap to retrieve the head and tail directly from heap *)
     let hd : 'a = 
       match Heap.payload_head node.value with
-      | None -> failwith "map: head is None"
+      | None -> failwith "SignalUtils: head is None"
       | Some h -> h
     in 
     let tl : 'a signal oe = 
       match Heap.payload_tail node.value with
-      | None -> failwith "map: tail is None"
+      | None -> failwith "SignalUtils: tail is None"
       | Some t -> t
     in
     (hd, tl)

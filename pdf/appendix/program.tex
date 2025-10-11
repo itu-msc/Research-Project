@@ -1,0 +1,16 @@
+
+\section{Program.cs}\label{appendix:program}
+
+% code snippet example
+\begin{lstlisting}
+using BenchmarkDotNet.Configs;
+using BenchmarkDotNet.Running;
+using BenchmarkDotNet.Exporters.Json;
+
+var config = DefaultConfig.Instance
+    .AddExporter(JsonExporter.Brief);
+
+var summaries = BenchmarkSwitcher
+    .FromAssembly(typeof(Program).Assembly)
+    .Run(args, config);
+\end{lstlisting}

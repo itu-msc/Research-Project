@@ -1,10 +1,12 @@
 (* not necessarily what we want - but we CAN make types opaque.
    Maybe we provide functions that use the type constructors of oe
 *)
+
+
 type 'a channel
 type _ oa
 type _ oe
-type 'a signal = (::) of 'a * 'a signal oe
+type 'a signal = Identifier of int
 type ('a, 'b) sync =
 | Fst of 'a
 | Snd of 'b
@@ -29,8 +31,3 @@ val ostar : ('a -> 'b) oa -> 'a oa -> 'b oa
 (* this is the triangle from the paper*)
 val fa : ('a -> 'b) -> 'a oe -> 'b oe
 val (|>) : ('a -> 'b) -> 'a oe -> 'b oe
-
-val const : 'a -> 'a signal
-val map : ('a -> 'b) -> 'a signal -> 'b signal
-val mkSig : 'a channel -> 'a signal oe
-val switch : 'a signal -> 'a signal oe -> 'a signal

@@ -12,6 +12,8 @@ type ('a, 'b) sync =
 let delay a : 'a oa = fun () -> a
 let adv : 'a oa -> 'a = fun d -> d ()
 
+type 'a signal = Identifier of int
+
 (* TODO *)
 type 'a channel = Index of int
 let new_channel = 
@@ -28,9 +30,9 @@ type _ oe =
   (* Do these go here? *)
   | Trig : 'a option signal -> 'a oe
   | Tail : 'a signal -> 'a signal oe
-and
+(* and
  'a signal = 
-  | (::) of 'a * 'a signal oe
+  | (::) of 'a * 'a signal oe *)
 
 let never = Never
 let app  = fun f x -> App (f, x)
@@ -43,31 +45,3 @@ let fa f x = app (delay f) x
 let (|>) = fa
 
 let ostar (f: ('a -> 'b) oa) (x: 'a oa) : 'b oa = delay (adv f (adv x))
-
-let rec switch (x::xs) (d ) =
-  let cont = function
-    | Fst xs' -> switch xs' d
-    | Snd d' -> d'
-    | Both (_, d') -> d' in
-  x :: (cont |> (sync xs d))
-
-let const x = x :: Never
-
-let rec mkSig (k: 'a channel) : 'a signal oe = 
-  (fun a -> a :: mkSig k) |> wait k
-
-(* not correct as we dont have the correct *)
-(* let rec map_sig (f: 'a -> 'b) (s: 'a signal) : 'b signal =
-  match s with
-  | a :: ax -> f a :: fa (map_sig f) ax *)
-
-let rec map f (x :: xs) = f x :: (map f |> xs)
-
-(*TODO: this only type-checks because channel is id
-        mkSig takes a channel, but trig produces an ('a oe)
-*)
-(* let rec filter p s =
-  let map_maybe : ('a -> bool) -> 'a signal oe -> 'a option signal oe = 
-    fun f d -> map (fun x -> if f x then Some x else None) |> d
-  in
-  mkSig (Trig (None :: (map_maybe p s))) *)

@@ -1,23 +1,25 @@
 open MainTypes
 
-type 'a node = {
-  mutable prev : 'a node option;
-  mutable next : 'a node option;
-  value : 'a payload;   (* strong ref to payload object *)
+type data = Obj.t
+
+type node = {
+  mutable prev : node option;
+  mutable next : node option;
+  value : payload;   (* strong ref to payload object *)
   id : int;
 }
 
-and 'a payload = {
+and payload = {
   mutable 
-  head : 'a Weak.t; (* weak reference to head node *)
-  tail : 'a signal oe Weak.t; (* weak reference to tail node *)
+  head : data Weak.t; (* weak reference to head node *)
+  tail : data signal oe Weak.t; (* weak reference to tail node *)
   mutable updated : bool;         (* flag for "has been updated" *) (* should we move this to the node? *)
 }
 
-type 'a linkedList = {
-  mutable head : 'a node option;
-  mutable tail : 'a node option;
-  mutable cursor : 'a node;  (* for iteration *)
+type linkedList = {
+  mutable head : node option;
+  mutable tail : node option;
+  mutable cursor : node;  (* for iteration *)
   mutable len  : int;
   mutable next_id : int;
 }
@@ -25,7 +27,7 @@ type 'a linkedList = {
 let create_dummy_node () =
   { prev = None; next = None; value = Obj.magic (); id = -1 }
 
-let heap: int linkedList = 
+let heap: linkedList = 
   let head = create_dummy_node () in
   let tail = create_dummy_node () in
   head.next <- Some tail;
@@ -53,23 +55,27 @@ let get_now_tail () =
   | None -> failwith "Heap invariant broken: tail is None"
   | Some t -> t
 
-let insert (s: 'a) (t: 'a signal oe) = 
-  let cursor = heap.cursor in
-  let head = Weak.create 1 in
-  Weak.set head 0 (Some s);
-  let tail = Weak.create 1 in
-  Weak.set tail 0 (Some t);
-  let payload = { head; tail; updated = false } in
-  let new_node = { prev = cursor.prev; next = Some cursor; value = payload; id = heap.next_id } in
-  (match cursor.prev with 
-  | None -> failwith "Heap invariant broken: cursor prev is None"
-  | Some p -> p.next <- Some new_node);
-  cursor.prev <- Some new_node;
-  heap.next_id <- heap.next_id + 1;
-  heap.len <- heap.len + 1;
-  ()
+let alloc : type a. a -> a signal oe -> int =
+  fun s t -> 
+    let cursor = heap.cursor in
+    let head : data Weak.t = Weak.create 1 in
+    Weak.set head 0 (Some (Obj.magic s));
+    let tail : data signal oe Weak.t = Weak.create 1 in
+    Weak.set tail 0 (Some (Obj.magic t));
+    let payload = { head; tail; updated = false } in
+    let new_node = { prev = cursor.prev; next = Some cursor; value = payload; id = heap.next_id } in
+    (match cursor.prev with 
+    | None -> failwith "Heap invariant broken: cursor prev is None"
+    | Some p -> p.next <- Some new_node);
+    cursor.prev <- Some new_node;
+    heap.len <- heap.len + 1;
+    let signal_id = heap.next_id in
+    heap.next_id <- heap.next_id + 1;
+    signal_id
 
-let delete (node: 'a node) =
+let insert s t = let open Stdlib in alloc s t |> ignore
+
+let delete (node: node) =
   match node.prev, node.next with
   | Some p, Some n -> 
       p.next <- Some n;
@@ -79,11 +85,13 @@ let delete (node: 'a node) =
   | _ -> failwith "Heap invariant broken: node to delete has None prev or next"
 
 (* is this what we want?? *)
-let update (n: 'a node) (s: 'a) (t: 'a signal oe) =
-  Weak.set n.value.head 0 (Some s);
-  Weak.set n.value.tail 0 (Some t);
-  (* n.value.updated <- true; *)
-  ()
+(* let update (n: node) (s: 'a) (t: 'a signal oe) = *)
+let update : type a. node -> a -> a signal oe -> unit =
+  fun n s t ->
+    Weak.set n.value.head 0 (Some (Obj.magic s));
+    Weak.set n.value.tail 0 (Some (Obj.magic t));
+    (* n.value.updated <- true; *)
+    ()
 
 let find (id: int) = 
   let rec aux n =
@@ -97,10 +105,6 @@ let find (id: int) =
 
 (* let _iter f = ()  *)
 
-
-
-
-
 let print_heap () =
   let rec aux n = 
     match n with
@@ -110,3 +114,15 @@ let print_heap () =
         aux nn.next in
   aux heap.head;
   Printf.printf "\n"
+
+let payload_head : type a. payload -> a option = 
+  fun payload -> 
+    match Weak.get (payload.head) 0 with
+    | None -> None
+    | Some v -> Some (Obj.magic v : a)
+  
+let payload_tail : type a . payload -> a signal oe option = 
+  fun payload -> 
+    match Weak.get (payload.tail) 0 with
+    | None -> None
+    | Some v -> Some (Obj.magic v : a signal oe) 

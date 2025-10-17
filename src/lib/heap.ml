@@ -199,3 +199,28 @@ let rec advance : type a . int channel -> a oe -> int -> a =
       else
         failwith "Heap.adv: triggered signal not updated" (* what are we suposed to do here *)
     | Never -> failwith "Heap.adv: cannot advance Never oe"
+
+
+let incr_cursor () = 
+  match heap.cursor.next with
+  | None -> failwith "cursor should never reach here"
+  | Some next -> heap.cursor <- next
+
+let step_cursor : type a . int channel -> int -> unit = fun k v -> 
+  let cur = heap.cursor.value in
+  (* TODO: double-check if this is here we should delete :) *)
+  match payload_tail cur with
+  | None -> delete heap.cursor; incr_cursor ()
+  | Some v2 -> 
+    if not @@ ticked k v2 then 
+      let () = cur.updated <- false in
+      incr_cursor ()
+    else
+      let Identifier l' = advance k v2 v in
+      (* TODO: fix pattern matching *)
+      let node = Option.get @@ find l' in
+      let v1' = Option.get @@ payload_head node.value in
+      let v2' = Option.get @@ payload_tail node.value in
+      update node v1' v2';
+      node.value.updated <- true;
+      incr_cursor ()

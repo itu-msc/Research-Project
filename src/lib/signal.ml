@@ -30,10 +30,10 @@ let ( @: ) : 'a -> 'a signal oe -> 'a signal = alloc_signal
 
 let const x = x @: never
 
-let rec mkSig k = (fun a -> a @: mkSig k) |> wait k
+let rec mkSig k = (fun a -> a @: mkSig k) |>> wait k
 
 let rec map f s = match SignalUtils.hd_tail s with
-  | hd, tl -> f hd @: (map f |> tl)
+  | hd, tl -> f hd @: (map f |>> tl)
 
 let rec switch s d = 
   let cont = function
@@ -41,6 +41,6 @@ let rec switch s d =
     | Snd d' -> d'
     | Both (_, d') -> d' in
   let hd, tl = SignalUtils.hd_tail s in
-  hd @: (cont |> (sync tl d))
+  hd @: (cont |>> (sync tl d))
 
 let head s = fst (SignalUtils.hd_tail s)

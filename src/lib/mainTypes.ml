@@ -42,6 +42,6 @@ let trig = fun s -> Trig s
 let tail = fun s -> Tail s
 
 let fa f x = app (delay f) x
-let (|>) = fa
+let (|>>) = fa
 
 let ostar (f: ('a -> 'b) oa) (x: 'a oa) : 'b oa = delay (adv f (adv x))

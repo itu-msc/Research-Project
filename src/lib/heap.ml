@@ -1,4 +1,5 @@
 open MainTypes
+open Stdlib
 
 type data = Obj.t
 
@@ -73,7 +74,7 @@ let alloc : type a. a -> a signal oe -> int =
     heap.next_id <- heap.next_id + 1;
     signal_id
 
-let insert s t = let open Stdlib in alloc s t |> ignore
+let insert s t = alloc s t |> ignore
 
 let delete (node: node) =
   match node.prev, node.next with
@@ -126,3 +127,75 @@ let payload_tail : type a . payload -> a signal oe option =
     match Weak.get (payload.tail) 0 with
     | None -> None
     | Some v -> Some (Obj.magic v : a signal oe) 
+
+let rec ticked : type a . int channel -> a oe -> bool =
+  fun k v ->
+    match v with
+    | Never -> false
+    | App (_, x) -> 
+      ticked k x
+    | Wait (Index k') -> 
+      let kv = match k with Index _i -> _i in
+      kv = k'
+    | Sync (u1, u2) ->
+      ticked k u1 || ticked k u2
+    | Trig s ->
+      let id = match s with Identifier i -> i in
+      let signal_node = match find id with 
+        | None -> failwith ("Heap.ticked: triggered signal with id " ^ string_of_int id ^ " not found")
+        | Some n -> n 
+      in
+      signal_node.value.updated
+    | Tail (Identifier l) -> 
+      let signal_node = match find l with 
+        | None -> failwith ("Heap.ticked: tail signal with id " ^ string_of_int l ^ " not found")
+        | Some n -> n 
+      in
+      let tail = match payload_tail signal_node.value with
+        | None -> failwith "Heap.ticked: tail is None"
+        | Some t -> t
+      in
+      ticked k tail
+
+let rec advance : type a . int channel -> a oe -> int -> a =
+  fun k u w ->
+    match u with 
+    | Wait (Index k') -> 
+      let kv = match k with Index _i -> _i in
+      if kv = k' then Obj.magic w
+      else failwith "Heap.adv: channel mismatch"
+    | Tail s -> 
+      s
+    | App (f, x) -> 
+      let x_val = advance k x w in 
+      let f_val = f() x_val in
+      f_val
+    | Sync (v1, v2) ->
+        let u1Ticked = ticked k v1 in
+        let u2Ticked = ticked k v2 in
+        (match (u1Ticked, u2Ticked) with
+        | (true, false) ->
+            Fst (advance k v1 w)
+        | (false, true) ->
+            let w2 = advance k v2 w in
+            Snd w2
+        | (true, true) ->
+            let w1 = advance k v1 w in
+            let w2 = advance k v2 w in
+            Both (w1, w2)
+        | (false, false) ->
+            failwith "Heap.adv: neither side of Sync ticked")
+    | Trig s ->
+      let id = match s with Identifier i -> i in
+      let signal_node = match find id with 
+        | None -> failwith ("Heap.adv: triggered signal with id " ^ string_of_int id ^ " not found")
+        | Some n -> n 
+      in
+      if signal_node.value.updated then
+        let hd = payload_head signal_node.value in
+        (match hd with
+        | Some v -> v
+        | None -> failwith "Heap.adv: triggered signal has None value")
+      else
+        failwith "Heap.adv: triggered signal not updated" (* what are we suposed to do here *)
+    | Never -> failwith "Heap.adv: cannot advance Never oe"

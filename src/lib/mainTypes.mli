@@ -3,14 +3,23 @@
 *)
 
 
-type 'a channel
-type _ oa
-type _ oe
+type 'a channel = Index of int
+(* consider using a constructor *)
+type 'a oa = unit -> 'a
 type 'a signal = Identifier of int
 type ('a, 'b) sync =
 | Fst of 'a
 | Snd of 'b
 | Both of 'a * 'b
+
+type _ oe = private
+  | Never
+  | App : ('a -> 'b) oa * 'a oe -> 'b oe   (* this is the O>*)
+  | Sync : 'a oe * 'b oe -> ('a, 'b) sync oe
+  | Wait : 'a channel -> 'a oe
+  (* Do these go here? *)
+  | Trig : 'a option signal -> 'a oe
+  | Tail : 'a signal -> 'a signal oe
 
 val new_channel : unit -> 'a channel
 val adv_channel : 'a channel -> 'a
@@ -30,4 +39,4 @@ val tail : 'a signal -> 'a signal oe
 val ostar : ('a -> 'b) oa -> 'a oa -> 'b oa
 (* this is the triangle from the paper*)
 val fa : ('a -> 'b) -> 'a oe -> 'b oe
-val (|>) : ('a -> 'b) -> 'a oe -> 'b oe
+val (|>>) : ('a -> 'b) -> 'a oe -> 'b oe

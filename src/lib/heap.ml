@@ -135,7 +135,7 @@ let rec ticked : type a . int channel -> a oe -> bool =
     | App (_, x) -> 
       ticked k x
     | Wait (Index k') -> 
-      let kv = match k with Index _i -> _i in
+      let Index kv = k in 
       kv = k'
     | Sync (u1, u2) ->
       ticked k u1 || ticked k u2
@@ -164,8 +164,7 @@ let rec advance : type a . int channel -> a oe -> int -> a =
       let kv = match k with Index _i -> _i in
       if kv = k' then Obj.magic w
       else failwith "Heap.adv: channel mismatch"
-    | Tail s -> 
-      s
+    | Tail s -> s
     | App (f, x) -> 
       let x_val = advance k x w in 
       let f_val = f() x_val in
@@ -206,14 +205,15 @@ let incr_cursor () =
   | None -> failwith "cursor should never reach here"
   | Some next -> heap.cursor <- next
 
-let step_cursor : type a . int channel -> int -> unit = fun k v -> 
-  let cur = heap.cursor.value in
+let step_cursor : int channel -> int -> unit = fun k v -> 
+  let cur = heap.cursor in
+  let cur_payload = cur.value in
   (* TODO: double-check if this is here we should delete :) *)
-  match payload_tail cur with
+  match payload_tail cur_payload with
   | None -> delete heap.cursor; incr_cursor ()
   | Some v2 -> 
     if not @@ ticked k v2 then 
-      let () = cur.updated <- false in
+      let () = cur_payload.updated <- false in
       incr_cursor ()
     else
       let Identifier l' = advance k v2 v in
@@ -221,6 +221,14 @@ let step_cursor : type a . int channel -> int -> unit = fun k v ->
       let node = Option.get @@ find l' in
       let v1' = Option.get @@ payload_head node.value in
       let v2' = Option.get @@ payload_tail node.value in
-      update node v1' v2';
-      node.value.updated <- true;
+      update cur v1' v2';
+      cur_payload.updated <- true;
       incr_cursor ()
+
+let step k v : unit = 
+  let rec inner : unit -> unit = fun () ->
+    if Option.is_none heap.cursor.next then ()
+    else let () = step_cursor k v in inner () 
+  in 
+  reset_cursor ();
+  inner ()

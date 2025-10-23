@@ -45,3 +45,15 @@ let fa f x = app (delay f) x
 let (|>>) = fa
 
 let ostar (f: ('a -> 'b) oa) (x: 'a oa) : 'b oa = delay (adv f (adv x))
+
+
+let rec pp_oe_helper : type a. Format.formatter -> a oe -> unit= 
+  fun out -> function 
+  | Never -> Format.fprintf out "never"
+  | Wait (Index k) -> Format.fprintf out "wait %a"  Format.pp_print_int k
+  | Tail (Identifier l) -> Format.fprintf out "tail %a" Format.pp_print_int l
+  | Sync (a,b) -> Format.fprintf out "sync (%a, %a)" pp_oe_helper a pp_oe_helper b
+  | App (_, a) -> Format.fprintf out "app _ (%a)" pp_oe_helper a
+  | Trig (Identifier l) -> Format.fprintf out "trig %a" Format.pp_print_int l
+
+let pp_oe out x = Format.fprintf out "%a" pp_oe_helper x

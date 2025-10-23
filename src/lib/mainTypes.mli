@@ -40,3 +40,5 @@ val ostar : ('a -> 'b) oa -> 'a oa -> 'b oa
 (* this is the triangle from the paper*)
 val fa : ('a -> 'b) -> 'a oe -> 'b oe
 val (|>>) : ('a -> 'b) -> 'a oe -> 'b oe
+
+val pp_oe : Format.formatter -> 'a oe -> unit

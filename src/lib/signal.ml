@@ -44,3 +44,33 @@ let rec switch s d =
   hd @: (cont |>> (sync tl d))
 
 let head s = fst (SignalUtils.hd_tail s)
+
+let rec zip xs ys =
+  let cont = function
+    | Fst xs' -> zip xs' ys
+    | Snd ys' -> zip xs  ys'
+    | Both (xs', ys') -> zip xs' ys'
+  in
+  (head xs, head ys) @: (cont |>> sync (tail xs) (tail ys))
+
+let rec switchS s d = 
+  let x, xs = SignalUtils.hd_tail s in
+  let cont = function 
+    | Fst xs' -> switchS xs' d
+    | Snd f -> f x
+    | Both(_,f) -> f x
+  in
+  x @: (cont |>> sync xs d)
+
+let rec switchR s d = 
+  let x, xs = SignalUtils.hd_tail s in
+  let cont = function
+    | Fst xs' -> switchR xs' d
+    | Snd fs -> head fs x
+    | Both (_, fs) -> head fs x
+  in
+  x @: (cont |>> sync xs d)
+
+let pp_signal pp_a out s =
+  let hd, tl = SignalUtils.hd_tail s in
+  Format.fprintf out "%a :: oe(%a)" pp_a hd pp_oe tl

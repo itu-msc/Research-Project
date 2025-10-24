@@ -23,7 +23,7 @@ let () =
   let sig1 = 0 @: mkSig chan1 in
   let sig2 = map (fun x -> 
     let y = x+4 in 
-    "this was another type " ^ string_of_int @@ y*y
+    "map sig1 of int to new signal of string " ^ string_of_int @@ y*y
   ) sig1 in
   let head1 = head sig1 in
   let head2 = head sig2 in

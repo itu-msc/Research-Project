@@ -48,11 +48,13 @@ let () = print_OA (delay "Test OA");
 
 (* Example usage of the 'oe' type *)
 
-(* let () = 
+(* 
+
+let () = 
   insert 42 (tail (const 1)); 
   insert 43 (tail (const 2)); 
   insert 44 (tail (const 3))
-
+  
 let () = print_heap ()
 
 let () = 
@@ -60,4 +62,5 @@ let () =
   insert 45 (tail (const 4)); 
   insert 46 (tail (const 5))
 
-let () = print_heap () *)
+let () = print_heap () 
+*)

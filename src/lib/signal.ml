@@ -1,5 +1,5 @@
-open MainTypes
-open Heap
+open Internals.MainTypes
+open Internals.Heap
 
 module SignalUtils = struct 
   (* helper since we cannot pattern match, and the information is on the heap *)
@@ -11,12 +11,12 @@ module SignalUtils = struct
     in 
     (* must go through heap to retrieve the head and tail directly from heap *)
     let hd : 'a = 
-      match Heap.payload_head node.value with
+      match payload_head node.value with
       | None -> failwith "SignalUtils: head is None"
       | Some h -> h
     in 
     let tl : 'a signal oe = 
-      match Heap.payload_tail node.value with
+      match payload_tail node.value with
       | None -> failwith "SignalUtils: tail is None"
       | Some t -> t
     in
@@ -24,7 +24,7 @@ module SignalUtils = struct
 end
 
 let alloc_signal : 'a -> 'a signal oe -> 'a signal =
-  fun s t -> Identifier (Heap.alloc s t) 
+  fun s t -> Identifier (alloc s t) 
 
 let ( @: ) : 'a -> 'a signal oe -> 'a signal = alloc_signal
 

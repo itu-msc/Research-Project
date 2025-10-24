@@ -1,4 +1,4 @@
-open MainTypes
+open Internals.MainTypes
 
 val (@:) : 'a -> 'a signal oe -> 'a signal
 val const : 'a -> 'a signal

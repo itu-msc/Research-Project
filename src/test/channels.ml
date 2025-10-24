@@ -1,6 +1,6 @@
-(* open Rizzo.MainTypes
-open Rizzo.Heap *)
+(* open Rizzo.Types
+open Rizzo.Signal *)
 
 (* let () =
-  let chan = new_channel () in
-  chan *)
+  Identifier (ref 42) |> ignore;  (* just to test that Rizzo.Types is accessible *)
+  () *)

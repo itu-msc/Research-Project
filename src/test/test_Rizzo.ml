@@ -1,5 +1,5 @@
-open Rizzo.MainTypes
-open Rizzo.Heap
+open Rizzo.Internals.MainTypes
+open Rizzo.Internals.Heap
 open Rizzo.Signal
 
 

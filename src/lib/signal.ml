@@ -4,7 +4,7 @@ open Heap
 module SignalUtils = struct 
   (* helper since we cannot pattern match, and the information is on the heap *)
   let hd_tail (s : 'a signal)  = 
-    let id = match s with Identifier i -> i in
+    let id = match s with Identifier i -> !i in
     let node = match find id with
       | None -> failwith ("SignalUtils: signal with id " ^ string_of_int id ^ " not found")
       | Some n -> n 

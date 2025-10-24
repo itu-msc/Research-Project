@@ -6,7 +6,8 @@
 type 'a channel = Index of int
 (* consider using a constructor *)
 type 'a oa = unit -> 'a
-type 'a signal = Identifier of int
+type 'a signal = Identifier of int ref
+
 type ('a, 'b) sync =
 | Fst of 'a
 | Snd of 'b
@@ -22,7 +23,6 @@ type _ oe = private
   | Tail : 'a signal -> 'a signal oe
 
 val new_channel : unit -> 'a channel
-val adv_channel : 'a channel -> 'a
 
 val delay : 'a -> 'a oa
 val adv   : 'a oa -> 'a

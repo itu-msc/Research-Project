@@ -12,15 +12,14 @@ type ('a, 'b) sync =
 let delay a : 'a oa = fun () -> a
 let adv : 'a oa -> 'a = fun d -> d ()
 
-type 'a signal = Identifier of int
+(* TODO: Wasteful memory usage for a ref object *)
+type 'a signal = Identifier of int ref
 
 (* TODO *)
 type 'a channel = Index of int
 let new_channel = 
   let next = ref 0 in
   fun () -> (let c = !next in next := !next + 1; Index c)
-
-let adv_channel (c : 'a channel) : 'a = match c with Index _i -> Obj.magic "hii"
 
 type _ oe =
   | Never
@@ -51,9 +50,9 @@ let rec pp_oe_helper : type a. Format.formatter -> a oe -> unit=
   fun out -> function 
   | Never -> Format.fprintf out "never"
   | Wait (Index k) -> Format.fprintf out "wait %a"  Format.pp_print_int k
-  | Tail (Identifier l) -> Format.fprintf out "tail %a" Format.pp_print_int l
+  | Tail (Identifier l) -> Format.fprintf out "tail %a" Format.pp_print_int !l
   | Sync (a,b) -> Format.fprintf out "sync (%a, %a)" pp_oe_helper a pp_oe_helper b
   | App (_, a) -> Format.fprintf out "app _ (%a)" pp_oe_helper a
-  | Trig (Identifier l) -> Format.fprintf out "trig %a" Format.pp_print_int l
+  | Trig (Identifier l) -> Format.fprintf out "trig %a" Format.pp_print_int !l
 
 let pp_oe out x = Format.fprintf out "%a" pp_oe_helper x

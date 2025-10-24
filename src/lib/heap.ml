@@ -7,13 +7,13 @@ type node = {
   mutable prev : node option;
   mutable next : node option;
   value : payload;   (* strong ref to payload object *)
-  id : int;
+  id : int ref Weak.t; (* can delete node if id is no longer reachable from user *)
 }
 
+(* payload holds "strong" references, node.id decides wether to release the data *)
 and payload = {
-  mutable 
-  head : data Weak.t; (* weak reference to head node *)
-  tail : data signal oe Weak.t; (* weak reference to tail node *)
+  mutable head : data; 
+  mutable tail : data signal oe; 
   mutable updated : bool;         (* flag for "has been updated" *) (* should we move this to the node? *)
 }
 
@@ -25,8 +25,16 @@ type linkedList = {
   mutable next_id : int;
 }
 
+let dummy_id = ref (-1)
+
+let create_id_weak_ref id_ref = 
+  let w = Weak.create 1 in
+  Weak.set w 0 (Some id_ref); 
+  w
+let get_id_ref w = Weak.get w 0
+
 let create_dummy_node () =
-  { prev = None; next = None; value = Obj.magic (); id = -1 }
+  { prev = None; next = None; value = Obj.magic (); id = create_id_weak_ref dummy_id }
 
 let heap: linkedList = 
   let head = create_dummy_node () in
@@ -56,21 +64,19 @@ let get_now_tail () =
   | None -> failwith "Heap invariant broken: tail is None"
   | Some t -> t
 
-let alloc : type a. a -> a signal oe -> int =
+let alloc : type a. a -> a signal oe -> int ref =
   fun s t -> 
     let cursor = heap.cursor in
-    let head : data Weak.t = Weak.create 1 in
-    Weak.set head 0 (Some (Obj.magic s));
-    let tail : data signal oe Weak.t = Weak.create 1 in
-    Weak.set tail 0 (Some (Obj.magic t));
+    let head : data = Obj.magic s in
+    let tail : data signal oe = Obj.magic t in 
     let payload = { head; tail; updated = false } in
-    let new_node = { prev = cursor.prev; next = Some cursor; value = payload; id = heap.next_id } in
+    let signal_id = ref heap.next_id in
+    let new_node = { prev = cursor.prev; next = Some cursor; value = payload; id = create_id_weak_ref signal_id } in
     (match cursor.prev with 
     | None -> failwith "Heap invariant broken: cursor prev is None"
     | Some p -> p.next <- Some new_node);
     cursor.prev <- Some new_node;
     heap.len <- heap.len + 1;
-    let signal_id = heap.next_id in
     heap.next_id <- heap.next_id + 1;
     signal_id
 
@@ -89,18 +95,19 @@ let delete (node: node) =
 (* let update (n: node) (s: 'a) (t: 'a signal oe) = *)
 let update : type a. node -> a -> a signal oe -> unit =
   fun n s t ->
-    Weak.set n.value.head 0 (Some (Obj.magic s));
-    Weak.set n.value.tail 0 (Some (Obj.magic t));
-    (* n.value.updated <- true; *)
+    n.value.head <- Obj.magic s;
+    n.value.tail <- Obj.magic t;
     ()
 
 let find (id: int) = 
   let rec aux n =
     match n with
     | None -> None
-    | Some nn ->
+    | Some nn -> match get_id_ref nn.id with
+      | None -> aux nn.next (* gc was here*)
+      | Some {contents = nn_id} ->
         if nn = heap.cursor then None
-        else if nn.id = id then Some nn
+        else if nn_id = id then Some nn
         else aux nn.next in
   aux heap.head
 
@@ -110,23 +117,19 @@ let print_heap () =
   let rec aux n = 
     match n with
     | None -> ()
-    | Some nn -> 
-        Printf.printf "%d " nn.id;
+    | Some nn -> match Weak.get nn.id 0 with
+      | None -> aux nn.next (* gc'ed *) 
+      | Some { contents = id } -> 
+        Printf.printf "%d " id;
         aux nn.next in
   aux heap.head;
   Printf.printf "\n"
 
 let payload_head : type a. payload -> a option = 
-  fun payload -> 
-    match Weak.get (payload.head) 0 with
-    | None -> None
-    | Some v -> Some (Obj.magic v : a)
+  fun payload -> Some (Obj.magic payload.head)
   
 let payload_tail : type a . payload -> a signal oe option = 
-  fun payload -> 
-    match Weak.get (payload.tail) 0 with
-    | None -> None
-    | Some v -> Some (Obj.magic v : a signal oe) 
+  fun payload -> Some (Obj.magic payload.tail)
 
 let rec ticked : type a . int channel -> a oe -> bool =
   fun k v ->
@@ -140,15 +143,15 @@ let rec ticked : type a . int channel -> a oe -> bool =
     | Sync (u1, u2) ->
       ticked k u1 || ticked k u2
     | Trig s ->
-      let id = match s with Identifier i -> i in
+      let id = match s with Identifier i -> !i in
       let signal_node = match find id with 
         | None -> failwith ("Heap.ticked: triggered signal with id " ^ string_of_int id ^ " not found")
         | Some n -> n 
       in
       signal_node.value.updated
     | Tail (Identifier l) -> 
-      let signal_node = match find l with 
-        | None -> failwith ("Heap.ticked: tail signal with id " ^ string_of_int l ^ " not found")
+      let signal_node = match find !l with 
+        | None -> failwith ("Heap.ticked: tail signal with id " ^ string_of_int !l ^ " not found")
         | Some n -> n 
       in
       let tail = match payload_tail signal_node.value with
@@ -185,7 +188,7 @@ let rec advance : type a . int channel -> a oe -> int -> a =
         | (false, false) ->
             failwith "Heap.adv: neither side of Sync ticked")
     | Trig s ->
-      let id = match s with Identifier i -> i in
+      let id = match s with Identifier i -> !i in
       let signal_node = match find id with 
         | None -> failwith ("Heap.adv: triggered signal with id " ^ string_of_int id ^ " not found")
         | Some n -> n 
@@ -208,17 +211,19 @@ let incr_cursor () =
 let step_cursor : int channel -> int -> unit = fun k v -> 
   let cur = heap.cursor in
   let cur_payload = cur.value in
+  let v2 = cur_payload.tail in
   (* TODO: double-check if this is here we should delete :) *)
+  (* match get_id_ref cur.id with *)
   match payload_tail cur_payload with
   | None -> delete heap.cursor; incr_cursor ()
-  | Some v2 -> 
+  | Some _ -> 
     if not @@ ticked k v2 then 
       let () = cur_payload.updated <- false in
       incr_cursor ()
     else
       let Identifier l' = advance k v2 v in
       (* TODO: fix pattern matching *)
-      let node = Option.get @@ find l' in
+      let node = Option.get @@ find !l' in
       let v1' = Option.get @@ payload_head node.value in
       let v2' = Option.get @@ payload_tail node.value in
       update cur v1' v2';

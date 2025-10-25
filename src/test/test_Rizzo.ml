@@ -1,6 +1,6 @@
-open Rizzo.Internals.MainTypes
 open Rizzo.Internals.Heap
 open Rizzo.Signal
+open Rizzo.Types
 
 
 let fourty_two = const 42

@@ -1,12 +1,13 @@
-type 'a oa
-type 'a oe
-type 'a channel
-type 'a signal
+open Internals
+type 'a oa = 'a MainTypes.oa
+type 'a oe = 'a MainTypes.oe
+type 'a channel = 'a MainTypes.channel
+type 'a signal = 'a MainTypes.signal
 
-type ('a, 'b) sync = 
-| Fst of 'a
-| Snd of 'b
-| Both of 'a * 'b
+type ('a, 'b) sync =   
+  | Fst of 'a
+  | Snd of 'b
+  | Both of 'a * 'b
 
 val new_channel : unit -> 'a channel
 

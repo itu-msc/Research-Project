@@ -1,10 +1,11 @@
-open Internals.MainTypes
-open Internals.Heap
+open Types
 
 module SignalUtils = struct 
+  open Internals.Heap
+  open Internals.MainTypes
   (* helper since we cannot pattern match, and the information is on the heap *)
   let hd_tail (s : 'a signal)  = 
-    let id = match s with Identifier i -> !i in
+    let id = signal_id s in
     let node = match find id with
       | None -> failwith ("SignalUtils: signal with id " ^ string_of_int id ^ " not found")
       | Some n -> n 
@@ -18,15 +19,15 @@ module SignalUtils = struct
     let tl : 'a signal oe = 
       match payload_tail node.value with
       | None -> failwith "SignalUtils: tail is None"
-      | Some t -> t
+      | Some t -> Obj.magic t
     in
     (hd, tl)
+
+    let alloc_signal : 'a -> 'a signal oe -> 'a signal = 
+      fun s t -> signal_of_ref (alloc s t)
 end
 
-let alloc_signal : 'a -> 'a signal oe -> 'a signal =
-  fun s t -> Identifier (alloc s t) 
-
-let ( @: ) : 'a -> 'a signal oe -> 'a signal = alloc_signal
+let ( @: ) : 'a -> 'a signal oe -> 'a signal = SignalUtils.alloc_signal
 
 let const x = x @: never
 
@@ -74,3 +75,28 @@ let rec switchR s d =
 let pp_signal pp_a out s =
   let hd, tl = SignalUtils.hd_tail s in
   Format.fprintf out "%a :: oe(%a)" pp_a hd pp_oe tl
+
+let rec scan f b s = 
+  let hd, tl = SignalUtils.hd_tail s in
+  let b' = f b hd in
+  b' @: (scan f b' |>> tl)
+
+let sample xs ys = 
+  map (fun x -> (x, head ys)) xs
+
+let rec jump f s =
+  let cont s = match f (head s) with
+  | None -> jump f s
+  | Some s' -> s'
+  in
+  head s @: (cont |>> (tail s))
+
+(* TODO: probably a very wrong implementation *)
+let rec interleave : ('a -> 'a -> 'a) -> 'a signal -> 'a signal -> 'a signal =
+  fun f xs ys ->
+    let cont = function
+    | Fst xs'         -> f (head xs') (head ys ) @: (tail @@ interleave f xs' ys)
+    | Snd ys'         -> f (head xs ) (head ys') @: (tail @@ interleave f xs ys')
+    | Both (xs', ys') -> f (head xs') (head ys') @: (tail @@ interleave f xs' ys')
+    in
+    f (head xs) (head ys) @: (cont |>> (sync (tail xs) (tail ys) ))

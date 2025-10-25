@@ -137,21 +137,23 @@ let rec ticked : type a . int channel -> a oe -> bool =
     | Never -> false
     | App (_, x) -> 
       ticked k x
-    | Wait (Index k') -> 
-      let Index kv = k in 
-      kv = k'
+    | Wait k' -> 
+      let id_k' = channel_id k' in
+      let id_k  = channel_id k in 
+      id_k' = id_k
     | Sync (u1, u2) ->
       ticked k u1 || ticked k u2
     | Trig s ->
-      let id = match s with Identifier i -> !i in
+      let id = signal_id s in
       let signal_node = match find id with 
         | None -> failwith ("Heap.ticked: triggered signal with id " ^ string_of_int id ^ " not found")
         | Some n -> n 
       in
       signal_node.value.updated
-    | Tail (Identifier l) -> 
-      let signal_node = match find !l with 
-        | None -> failwith ("Heap.ticked: tail signal with id " ^ string_of_int !l ^ " not found")
+    | Tail s ->
+      let l = signal_id s in 
+      let signal_node = match find l with 
+        | None -> failwith ("Heap.ticked: tail signal with id " ^ string_of_int l ^ " not found")
         | Some n -> n 
       in
       let tail = match payload_tail signal_node.value with
@@ -163,14 +165,15 @@ let rec ticked : type a . int channel -> a oe -> bool =
 let rec advance : type a . int channel -> a oe -> int -> a =
   fun k u w ->
     match u with 
-    | Wait (Index k') -> 
-      let kv = match k with Index _i -> _i in
-      if kv = k' then Obj.magic w
+    | Wait k' -> 
+      let id_k' = channel_id k' in
+      let id_k  = channel_id k in
+      if id_k = id_k' then Obj.magic w
       else failwith "Heap.adv: channel mismatch"
     | Tail s -> s
     | App (f, x) -> 
       let x_val = advance k x w in 
-      let f_val = f() x_val in
+      let f_val = adv f x_val in
       f_val
     | Sync (v1, v2) ->
         let u1Ticked = ticked k v1 in
@@ -188,7 +191,7 @@ let rec advance : type a . int channel -> a oe -> int -> a =
         | (false, false) ->
             failwith "Heap.adv: neither side of Sync ticked")
     | Trig s ->
-      let id = match s with Identifier i -> !i in
+      let id = signal_id s in
       let signal_node = match find id with 
         | None -> failwith ("Heap.adv: triggered signal with id " ^ string_of_int id ^ " not found")
         | Some n -> n 
@@ -221,9 +224,9 @@ let step_cursor : int channel -> int -> unit = fun k v ->
       let () = cur_payload.updated <- false in
       incr_cursor ()
     else
-      let Identifier l' = advance k v2 v in
+      let l' = signal_id (advance k v2 v) in
       (* TODO: fix pattern matching *)
-      let node = Option.get @@ find !l' in
+      let node = Option.get @@ find l' in
       let v1' = Option.get @@ payload_head node.value in
       let v2' = Option.get @@ payload_tail node.value in
       update cur v1' v2';

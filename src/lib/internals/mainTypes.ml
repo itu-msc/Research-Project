@@ -5,7 +5,6 @@ type ('a, 'b) sync =
   | Snd of 'b
   | Both of 'a * 'b
 
-
 (* a might get evaluated which we dont want, 
    it might be worth checking if we can get call by name or use Lazy
   https://stackoverflow.com/questions/71634864/does-ocaml-support-call-by-name-parameter-passing *)
@@ -14,9 +13,11 @@ let adv : 'a oa -> 'a = fun d -> d ()
 
 (* TODO: Wasteful memory usage for a ref object *)
 type 'a signal = Identifier of int ref
+let signal_id (Identifier id_ref) = !id_ref
+let signal_of_ref id_ref = Identifier id_ref
 
-(* TODO *)
 type 'a channel = Index of int
+let channel_id (Index id) = id
 let new_channel = 
   let next = ref 0 in
   fun () -> (let c = !next in next := !next + 1; Index c)
@@ -26,12 +27,8 @@ type _ oe =
   | App : ('a -> 'b) oa * 'a oe -> 'b oe   (* this is the O>*)
   | Sync : 'a oe * 'b oe -> ('a, 'b) sync oe
   | Wait : 'a channel -> 'a oe
-  (* Do these go here? *)
   | Trig : 'a option signal -> 'a oe
   | Tail : 'a signal -> 'a signal oe
-(* and
- 'a signal = 
-  | (::) of 'a * 'a signal oe *)
 
 let never = Never
 let app  = fun f x -> App (f, x)

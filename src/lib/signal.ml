@@ -33,6 +33,9 @@ let const x = x @: never
 
 let rec mkSig k = (fun a -> a @: mkSig k) |>> wait k
 
+let init_signal k v =
+  v @: mkSig k
+
 let rec map f s = match SignalUtils.hd_tail s with
   | hd, tl -> f hd @: (map f |>> tl)
 
@@ -100,3 +103,33 @@ let rec interleave : ('a -> 'a -> 'a) -> 'a signal -> 'a signal -> 'a signal =
     | Both (xs', ys') -> f (head xs') (head ys') @: (tail @@ interleave f xs' ys')
     in
     f (head xs) (head ys) @: (cont |>> (sync (tail xs) (tail ys) ))
+
+(* TODO: Not thread safe, this can cause race conditions.
+  When channels can be other things than int then change this to use float. *)
+let clock_channel interval =
+  let start = Unix.gettimeofday () +. interval in
+  let chan = new_channel () in
+  let stop_flag = ref false in
+  let rec aux next =
+    if !stop_flag then () else
+    try
+      let now = Unix.gettimeofday () in
+      let wait_time = max 0.0 (next -. now) in
+      Unix.sleepf wait_time;
+      Internals.Heap.step chan (int_of_float next);
+      aux (next +. interval)
+    with exn ->
+      prerr_endline ("clock thread error: " ^ Printexc.to_string exn);
+      (* simple backoff to avoid tight crash loop, then continue schedule *)
+      Unix.sleepf (max 0.1 interval);
+      aux (next +. interval)
+  in
+  let th = Thread.create (fun () -> aux start) () in
+  (* return channel and a stop function so caller can cancel the clock cleanly *)
+  (chan, (fun () -> stop_flag := true; Thread.join th))
+
+let clock_signal interval =
+  let chan, stop = clock_channel interval in
+  let signal = init_signal chan (int_of_float @@ Unix.gettimeofday ()) in
+  (signal, stop)
+

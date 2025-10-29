@@ -1,3 +1,5 @@
 (include_subdirs qualified)
 (library
- (name Rizzo))
+ (name rizzo)
+ (public_name Rizzo)
+ (libraries unix threads)) ; lwt lwt.unix

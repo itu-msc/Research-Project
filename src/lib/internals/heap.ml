@@ -1,5 +1,4 @@
 open MainTypes
-open Stdlib
 
 type data = Obj.t
 

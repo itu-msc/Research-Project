@@ -14,3 +14,6 @@ val sample : 'a signal -> 'b signal -> ('a * 'b) signal
 val scan : ('b -> 'a -> 'b) -> 'b -> 'a signal -> 'b signal
 val interleave : ('a -> 'a -> 'a) -> 'a signal -> 'a signal -> 'a signal
 val pp_signal : (Format.formatter -> 'a -> unit) -> Format.formatter -> 'a signal -> unit
+val init_signal : 'a channel -> 'a -> 'a signal
+val clock_signal : float -> int signal * (unit -> unit)
+val clock_channel : float -> int channel * (unit -> unit) (* returns channel and stopper *)

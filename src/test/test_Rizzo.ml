@@ -20,7 +20,7 @@ let () =
 let () =
   reset_cursor ();
   let chan1 : int channel = new_channel () in
-  let sig1 = 0 @: mkSig chan1 in
+  let sig1 = init_signal chan1 0 in
   let sig2 = map (fun x -> 
     let y = x+4 in 
     "map sig1 of int to new signal of string " ^ string_of_int @@ y*y

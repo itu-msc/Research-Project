@@ -116,7 +116,7 @@ let clock_channel interval =
       let now = Unix.gettimeofday () in
       let wait_time = max 0.0 (next -. now) in
       Unix.sleepf wait_time;
-      Internals.Heap.step chan (int_of_float next);
+      Internals.Heap.step chan (int_of_float next); (* remove int conversion if we want float *)
       aux (next +. interval)
     with exn ->
       prerr_endline ("clock thread error: " ^ Printexc.to_string exn);

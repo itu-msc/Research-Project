@@ -18,7 +18,7 @@ let signal_of_ref id_ref = Identifier id_ref
 
 type 'a channel = Index of int
 let channel_id (Index id) = id
-let new_channel = 
+let new_channel : unit -> 'a channel= 
   let next = ref 0 in
   fun () -> (let c = !next in next := !next + 1; Index c)
 

@@ -1,4 +1,4 @@
 open Types
 
-val step : int channel -> int -> unit
+val step : 'a channel -> 'a -> unit
 

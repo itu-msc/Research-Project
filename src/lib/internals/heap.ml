@@ -130,7 +130,8 @@ let payload_head : type a. payload -> a option =
 let payload_tail : type a . payload -> a signal oe option = 
   fun payload -> Some (Obj.magic payload.tail)
 
-let rec ticked : type a . int channel -> a oe -> bool =
+(* does channel and oe have to be the same type here? *)
+let rec ticked : type a . 'b channel -> a oe -> bool =
   fun k v ->
     match v with
     | Never -> false
@@ -161,7 +162,7 @@ let rec ticked : type a . int channel -> a oe -> bool =
       in
       ticked k tail
 
-let rec advance : type a . int channel -> a oe -> int -> a =
+let rec advance : type a . 'b channel -> a oe -> 'b -> a =
   fun k u w ->
     match u with 
     | Wait k' -> 
@@ -210,7 +211,7 @@ let incr_cursor () =
   | None -> failwith "cursor should never reach here"
   | Some next -> heap.cursor <- next
 
-let step_cursor : int channel -> int -> unit = fun k v -> 
+let step_cursor : 'a channel -> 'a -> unit = fun k v -> 
   let cur = heap.cursor in
   let cur_payload = cur.value in
   let v2 = cur_payload.tail in

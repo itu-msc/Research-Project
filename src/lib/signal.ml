@@ -31,7 +31,7 @@ let ( @: ) : 'a -> 'a signal oe -> 'a signal = SignalUtils.alloc_signal
 
 let const x = x @: never
 
-let rec mkSig k = (fun a -> a @: mkSig k) |>> wait k
+let rec mkSig k = (fun a -> a @: mkSig k) |>> wait k (* the issue might be here as it would call mkSig several times? *)
 
 let init_signal k v =
   v @: mkSig k
@@ -133,3 +133,5 @@ let clock_signal interval =
   let signal = init_signal chan (int_of_float @@ Unix.gettimeofday ()) in
   (signal, stop)
 
+let console_output (s : string signal) : unit =
+  map (fun v -> print_endline v; Internals.Heap.print_heap ()) s |> ignore

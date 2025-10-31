@@ -119,6 +119,8 @@ let print_heap () =
     | Some nn -> match Weak.get nn.id 0 with
       | None -> aux nn.next (* gc'ed *) 
       | Some { contents = id } -> 
+        if nn.id == heap.cursor.id then Printf.printf "(%d) " id
+        else
         Printf.printf "%d " id;
         aux nn.next in
   aux heap.head;
@@ -211,13 +213,12 @@ let incr_cursor () =
   | None -> failwith "cursor should never reach here"
   | Some next -> heap.cursor <- next
 
-let step_cursor : 'a channel -> 'a -> unit = fun k v -> 
+let step_cursor : 'a channel -> 'a -> unit = fun k v ->
   let cur = heap.cursor in
   let cur_payload = cur.value in
   let v2 = cur_payload.tail in
   (* TODO: double-check if this is here we should delete :) *)
-  (* match get_id_ref cur.id with *)
-  match payload_tail cur_payload with
+  match get_id_ref cur.id with
   | None -> delete heap.cursor; incr_cursor ()
   | Some _ -> 
     if not @@ ticked k v2 then 
@@ -233,10 +234,12 @@ let step_cursor : 'a channel -> 'a -> unit = fun k v ->
       cur_payload.updated <- true;
       incr_cursor ()
 
+(* add thread safe thing here *)
 let step k v : unit = 
   let rec inner : unit -> unit = fun () ->
     if Option.is_none heap.cursor.next then ()
     else let () = step_cursor k v in inner () 
   in 
   reset_cursor ();
-  inner ()
+  inner ();
+  Gc.full_major ()

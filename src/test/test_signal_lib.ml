@@ -31,11 +31,11 @@ let () =
   let other_signal = init_signal chan 0 in
   step chan 100;
 
-  print_endline ("Head of clock_signale signal: " ^ string_of_int (head clock_signal));
-  (* print_endline ("Tail of clockSignal: " ^ string_of_int (tail clock_signal)); *)
+  print_endline ("Head of clock_signale signal: " ^ string_of_float (head clock_signal));
+  (* print_endline ("Tail of clockSignal: " ^ string_of_float (tail clock_signal)); *)
   Unix.sleep 3;
   stop () |> ignore;
-  (* print_endline ("Head of fourty_two signal after 2s: " ^ string_of_int (head clock_signal)); *)
-  print_endline ("Head of fourty_two signal after 3s: " ^ string_of_int (head clock_signal));
+  (* print_endline ("Head of fourty_two signal after 2s: " ^ string_of_float (head clock_signal)); *)
+  print_endline ("Head of fourty_two signal after 3s: " ^ string_of_float (head clock_signal));
   print_endline ("Value of chan after 3s: " ^ string_of_int (head other_signal));
   ()

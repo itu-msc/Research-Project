@@ -31,7 +31,10 @@ let ( @: ) : 'a -> 'a signal oe -> 'a signal = SignalUtils.alloc_signal
 
 let const x = x @: never
 
-let rec mkSig k = (fun a -> a @: mkSig k) |>> wait k (* the issue might be here as it would call mkSig several times? *)
+let mkSig k =
+  let rec aux k = (fun a -> a @: aux k) |>> wait k
+  in
+  aux k
 
 let init_signal k v =
   v @: mkSig k
@@ -116,7 +119,7 @@ let clock_channel interval =
       let now = Unix.gettimeofday () in
       let wait_time = max 0.0 (next -. now) in
       Unix.sleepf wait_time;
-      Internals.Heap.step chan (int_of_float next); (* remove int conversion if we want float *)
+      Internals.Heap.step chan next; (* remove int conversion if we want float *)
       aux (next +. interval)
     with exn ->
       prerr_endline ("clock thread error: " ^ Printexc.to_string exn);
@@ -130,8 +133,15 @@ let clock_channel interval =
 
 let clock_signal interval =
   let chan, stop = clock_channel interval in
-  let signal = init_signal chan (int_of_float @@ Unix.gettimeofday ()) in
+  let signal = init_signal chan (Unix.gettimeofday ()) in
   (signal, stop)
 
+let output_signals = ref []
+
 let console_output (s : string signal) : unit =
-  map (fun v -> print_endline v; Internals.Heap.print_heap ()) s |> ignore
+  output_signals := map print_endline s :: !output_signals
+
+let start_event_loop () : unit = 
+  while true do
+    Thread.delay 0.05 (* adjust as needed; smaller = more responsive, larger = less CPU *)
+  done

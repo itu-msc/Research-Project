@@ -2,13 +2,13 @@ open! Rizzo.Types
 open! Rizzo.Signal
 open! Rizzo.Channel
 
-let () =
+(* let () =
   let inputChan = console_input () in
   let inputSig =  init_signal inputChan "" in
 
   let formattet_signal = map (fun v -> if v = "del" then Gc.full_major (); "Input: " ^ v) inputSig in
   
-  console_output formattet_signal
+  console_output formattet_signal *)
 
 let () =
   let one_sec, stop = clock_signal 1.0 in

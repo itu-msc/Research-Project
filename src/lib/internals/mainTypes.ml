@@ -11,11 +11,6 @@ type ('a, 'b) sync =
 let delay a : 'a oa = fun () -> a
 let adv : 'a oa -> 'a = fun d -> d ()
 
-(* TODO: Wasteful memory usage for a ref object *)
-type 'a signal = Identifier of int ref
-let signal_id (Identifier id_ref) = !id_ref
-let signal_of_ref id_ref = Identifier id_ref
-
 type 'a channel = Index of int
 let channel_id (Index id) = id
 let new_channel : unit -> 'a channel= 
@@ -29,6 +24,12 @@ type _ oe =
   | Wait : 'a channel -> 'a oe
   | Trig : 'a option signal -> 'a oe
   | Tail : 'a signal -> 'a signal oe
+and 'a signal_data = { id: int; mutable head: 'a; mutable tail: 'a signal oe; mutable updated: bool}
+and 'a signal = Signal of 'a signal_data
+let signal_id (Signal data) = data.id
+let signal_of_data data = Signal data
+let signal_get_data (Signal data) = data
+
 
 let never = Never
 let app  = fun f x -> App (f, x)
@@ -42,14 +43,13 @@ let (|>>) = fa
 
 let ostar (f: ('a -> 'b) oa) (x: 'a oa) : 'b oa = delay (adv f (adv x))
 
-
 let rec pp_oe_helper : type a. Format.formatter -> a oe -> unit= 
   fun out -> function 
   | Never -> Format.fprintf out "never"
   | Wait (Index k) -> Format.fprintf out "wait %a"  Format.pp_print_int k
-  | Tail (Identifier l) -> Format.fprintf out "tail %a" Format.pp_print_int !l
+  | Tail (Signal d) -> Format.fprintf out "tail %a" Format.pp_print_int d.id
   | Sync (a,b) -> Format.fprintf out "sync (%a, %a)" pp_oe_helper a pp_oe_helper b
   | App (_, a) -> Format.fprintf out "app _ (%a)" pp_oe_helper a
-  | Trig (Identifier l) -> Format.fprintf out "trig %a" Format.pp_print_int !l
+  | Trig (Signal d) -> Format.fprintf out "trig %a" Format.pp_print_int d.id
 
 let pp_oe out x = Format.fprintf out "%a" pp_oe_helper x

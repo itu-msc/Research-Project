@@ -4,30 +4,15 @@ module SignalUtils = struct
   open Internals.Heap
   open Internals.MainTypes
   (* helper since we cannot pattern match, and the information is on the heap *)
-  let hd_tail (s : 'a signal)  = 
-    let id = signal_id s in
-    let node = match find id with
-      | None -> failwith ("SignalUtils: signal with id " ^ string_of_int id ^ " not found")
-      | Some n -> n 
-    in 
-    (* must go through heap to retrieve the head and tail directly from heap *)
-    let hd : 'a = 
-      match payload_head node.value with
-      | None -> failwith "SignalUtils: head is None"
-      | Some h -> h
-    in 
-    let tl : 'a signal oe = 
-      match payload_tail node.value with
-      | None -> failwith "SignalUtils: tail is None"
-      | Some t -> Obj.magic t
-    in
-    (hd, tl)
+  let hd_tail s =
+    let {head; tail; _} = signal_get_data s in 
+    (head, tail)
 
-    let alloc_signal : 'a -> 'a signal oe -> 'a signal = 
-      fun s t -> signal_of_ref (alloc s t)
+    let alloc_signal : 'a -> 'a signal oe -> 'a signal =
+      fun h t -> signal_of_data (alloc h t)
 end
 
-let ( @: ) : 'a -> 'a signal oe -> 'a signal = SignalUtils.alloc_signal
+let ( @: ) = SignalUtils.alloc_signal
 
 let const x = x @: never
 

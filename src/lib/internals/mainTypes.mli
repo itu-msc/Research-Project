@@ -12,27 +12,33 @@
 
 type 'a oa
 type 'a channel
-type 'a signal
 
 type ('a, 'b) sync = 
   | Fst of 'a
   | Snd of 'b
   | Both of 'a * 'b
 
-type _ oe =   
+type _ oe = private
   | Never
-  | App : ('a -> 'b) oa * 'a oe -> 'b oe   (* this is the O>*)
+  | App : ('a -> 'b) oa * 'a oe -> 'b oe
   | Sync : 'a oe * 'b oe -> ('a, 'b) sync oe
   | Wait : 'a channel -> 'a oe
-  (* Do these go here? *)
   | Trig : 'a option signal -> 'a oe
   | Tail : 'a signal -> 'a signal oe
+and 'a signal  
+and 'a signal_data = { 
+  id: int; 
+  mutable head: 'a; 
+  mutable tail: 'a signal oe; 
+  mutable updated: bool
+}
 
 val new_channel : unit -> 'a channel
 val channel_id : 'a channel -> int
 
 val signal_id : 'a signal -> int
-val signal_of_ref : int ref -> 'a signal
+val signal_of_data : 'a signal_data -> 'a signal
+val signal_get_data : 'a signal -> 'a signal_data
 
 val delay : 'a -> 'a oa
 val adv : 'a oa -> 'a

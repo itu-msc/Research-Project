@@ -5,15 +5,8 @@ type data = Obj.t
 type node = {
   mutable prev : node option;
   mutable next : node option;
-  value : payload;   (* strong ref to payload object *)
-  id : int ref Weak.t; (* can delete node if id is no longer reachable from user *)
-}
-
-(* payload holds "strong" references, node.id decides wether to release the data *)
-and payload = {
-  mutable head : data; 
-  mutable tail : data signal oe; 
-  mutable updated : bool;         (* flag for "has been updated" *) (* should we move this to the node? *)
+  id : int;
+  value : data signal_data Weak.t;
 }
 
 type linkedList = {
@@ -24,16 +17,16 @@ type linkedList = {
   mutable next_id : int;
 }
 
-let dummy_id = ref (-1)
+let dummy_id = -1
 
-let create_id_weak_ref id_ref = 
-  let w = Weak.create 1 in
-  Weak.set w 0 (Some id_ref); 
-  w
-let get_id_ref w = Weak.get w 0
+let node_get_data : type a. node -> a signal_data option = 
+  fun n -> match Weak.get n.value 0 with
+    | None -> None (* gc'ed *)
+    | _ when n.id = dummy_id -> None (* to avoid segmentation faults from dummy nodes *)
+    | x -> Obj.magic x
 
 let create_dummy_node () =
-  { prev = None; next = None; value = Obj.magic (); id = create_id_weak_ref dummy_id }
+  { prev = None; next = None; value = Obj.magic (); id = dummy_id; }
 
 let heap: linkedList = 
   let head = create_dummy_node () in
@@ -63,21 +56,28 @@ let get_now_tail () =
   | None -> failwith "Heap invariant broken: tail is None"
   | Some t -> t
 
-let alloc : type a. a -> a signal oe -> int ref =
+let alloc : type a. a -> a signal oe -> a signal_data =
   fun s t -> 
     let cursor = heap.cursor in
-    let head : data = Obj.magic s in
-    let tail : data signal oe = Obj.magic t in 
-    let payload = { head; tail; updated = false } in
-    let signal_id = ref heap.next_id in
-    let new_node = { prev = cursor.prev; next = Some cursor; value = payload; id = create_id_weak_ref signal_id } in
+    let signal_id = heap.next_id in
+    let signal_data = { id = signal_id; head = s; tail = t; updated = false } in
+    let signal_data_weak = 
+      let w = Weak.create 1 in 
+      let to_insert = Some (Obj.magic signal_data : data signal_data) in
+      Weak.set w 0 to_insert; w 
+    in
+    let new_node = { 
+      id = signal_id;
+      prev = cursor.prev; next = Some cursor;
+      value = signal_data_weak;
+    } in
     (match cursor.prev with 
     | None -> failwith "Heap invariant broken: cursor prev is None"
     | Some p -> p.next <- Some new_node);
     cursor.prev <- Some new_node;
     heap.len <- heap.len + 1;
     heap.next_id <- heap.next_id + 1;
-    signal_id
+    signal_data
 
 let insert s t = alloc s t |> ignore
 
@@ -90,47 +90,36 @@ let delete (node: node) =
       ()
   | _ -> failwith "Heap invariant broken: node to delete has None prev or next"
 
-(* is this what we want?? *)
-(* let update (n: node) (s: 'a) (t: 'a signal oe) = *)
 let update : type a. node -> a -> a signal oe -> unit =
-  fun n s t ->
-    n.value.head <- Obj.magic s;
-    n.value.tail <- Obj.magic t;
-    ()
+  fun n s t -> 
+    match node_get_data n with
+    | None -> () (* gc'ed *)
+    | Some d -> d.head <- s; d.tail <- t
 
 let find (id: int) = 
   let rec aux n =
     match n with
     | None -> None
-    | Some nn -> match get_id_ref nn.id with
-      | None -> aux nn.next (* gc was here*)
-      | Some {contents = nn_id} ->
+    | Some nn ->
         if nn = heap.cursor then None
-        else if nn_id = id then Some nn
+        else if nn.id = id then Some nn
         else aux nn.next in
   aux heap.head
-
-(* let _iter f = ()  *)
 
 let print_heap () =
   let rec aux n = 
     match n with
     | None -> ()
-    | Some nn -> match Weak.get nn.id 0 with
-      | None -> aux nn.next (* gc'ed *) 
-      | Some { contents = id } -> 
-        if nn.id == heap.cursor.id then Printf.printf "(%d) " id
-        else
-        Printf.printf "%d " id;
-        aux nn.next in
+    | Some nn when nn.id = dummy_id -> Printf.printf "| "; aux nn.next
+    | Some nn -> match node_get_data nn with
+      | None -> aux nn.next (* gc'ed *)
+      | Some _ -> 
+        let id = nn.id in
+        if nn == heap.cursor then Printf.printf "(%d) " id
+        else Printf.printf "%d " id; aux nn.next
+  in
   aux heap.head;
   Printf.printf "\n"
-
-let payload_head : type a. payload -> a option = 
-  fun payload -> Some (Obj.magic payload.head)
-  
-let payload_tail : type a . payload -> a signal oe option = 
-  fun payload -> Some (Obj.magic payload.tail)
 
 (* does channel and oe have to be the same type here? *)
 let rec ticked : type a . 'b channel -> a oe -> bool =
@@ -146,23 +135,12 @@ let rec ticked : type a . 'b channel -> a oe -> bool =
     | Sync (u1, u2) ->
       ticked k u1 || ticked k u2
     | Trig s ->
-      let id = signal_id s in
-      let signal_node = match find id with 
-        | None -> failwith ("Heap.ticked: triggered signal with id " ^ string_of_int id ^ " not found")
-        | Some n -> n 
-      in
-      signal_node.value.updated
+      (* TODO: should we still check the signal is in heap? *)
+      let data = signal_get_data s in
+      data.updated
     | Tail s ->
-      let l = signal_id s in 
-      let signal_node = match find l with 
-        | None -> failwith ("Heap.ticked: tail signal with id " ^ string_of_int l ^ " not found")
-        | Some n -> n 
-      in
-      let tail = match payload_tail signal_node.value with
-        | None -> failwith "Heap.ticked: tail is None"
-        | Some t -> t
-      in
-      ticked k tail
+      let data = signal_get_data s in
+      ticked k data.tail
 
 let rec advance : type a . 'b channel -> a oe -> 'b -> a =
   fun k u w ->
@@ -193,18 +171,12 @@ let rec advance : type a . 'b channel -> a oe -> 'b -> a =
         | (false, false) ->
             failwith "Heap.adv: neither side of Sync ticked")
     | Trig s ->
-      let id = signal_id s in
-      let signal_node = match find id with 
-        | None -> failwith ("Heap.adv: triggered signal with id " ^ string_of_int id ^ " not found")
-        | Some n -> n 
-      in
-      if signal_node.value.updated then
-        let hd = payload_head signal_node.value in
-        (match hd with
-        | Some v -> v
-        | None -> failwith "Heap.adv: triggered signal has None value")
-      else
-        failwith "Heap.adv: triggered signal not updated" (* what are we suposed to do here *)
+      let signal_data = signal_get_data s in
+      if not signal_data.updated then failwith "Heap.adv: triggered signal not updated"
+      else 
+        (match signal_data.head with
+        | None -> failwith "Heap.adv: triggered signal has None value" (* TODO: is this really an error? *)
+        | Some v -> v)
     | Never -> failwith "Heap.adv: cannot advance Never oe"
 
 
@@ -214,24 +186,18 @@ let incr_cursor () =
   | Some next -> heap.cursor <- next
 
 let step_cursor : 'a channel -> 'a -> unit = fun k v ->
-  let cur = heap.cursor in
-  let cur_payload = cur.value in
-  let v2 = cur_payload.tail in
   (* TODO: double-check if this is here we should delete :) *)
-  match get_id_ref cur.id with
+  match node_get_data heap.cursor with
   | None -> delete heap.cursor; incr_cursor ()
-  | Some _ -> 
+  | Some cursor_data -> 
+    let {tail = v2; _} : 'a signal_data = cursor_data in
     if not @@ ticked k v2 then 
-      let () = cur_payload.updated <- false in
+      let () = cursor_data.updated <- false in
       incr_cursor ()
     else
-      let l' = signal_id (advance k v2 v) in
-      (* TODO: fix pattern matching *)
-      let node = Option.get @@ find l' in
-      let v1' = Option.get @@ payload_head node.value in
-      let v2' = Option.get @@ payload_tail node.value in
-      update cur v1' v2';
-      cur_payload.updated <- true;
+      let v' = signal_get_data (advance k v2 v) in
+      update heap.cursor v'.head v'.tail;
+      cursor_data.updated <- true;
       incr_cursor ()
 
 (* add thread safe thing here *)

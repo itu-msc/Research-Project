@@ -19,6 +19,8 @@ type linkedList = {
 
 let dummy_id = -1
 
+let mutex = Mutex.create ()
+
 let node_get_data : type a. node -> a signal_data option = 
   fun n -> match Weak.get n.value 0 with
     | None -> None (* gc'ed *)
@@ -205,9 +207,11 @@ let step_cursor : 'a channel -> 'a -> unit = fun k v ->
 
 (* add thread safe thing here *)
 let step k v : unit = 
+  Mutex.lock mutex;
   let rec inner : unit -> unit = fun () ->
     if Option.is_none heap.cursor.next then ()
     else let () = step_cursor k v in inner () 
   in 
   reset_cursor ();
-  inner ()
+  inner ();
+  Mutex.unlock mutex

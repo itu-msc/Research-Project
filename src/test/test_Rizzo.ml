@@ -8,7 +8,6 @@ let thirteen = map (fun _ -> 13) fourty_two
 
 let () = 
   print_string "Before GC: "; print_heap ();
-  Gc.full_major ();
   step (new_channel ()) 2;
   print_string "After GC: "; print_heap ();
   Format.printf "[After GC] %a\n" (pp_signal Format.pp_print_int) thirteen;

@@ -24,12 +24,17 @@ type _ oe =
   | Wait : 'a channel -> 'a oe
   | Trig : 'a option signal -> 'a oe
   | Tail : 'a signal -> 'a signal oe
-and 'a signal_data = { id: int; mutable head: 'a; mutable tail: 'a signal oe; mutable updated: bool}
+and 'a signal_data = { 
+  id: int; 
+  mutable head: 'a;
+  mutable tail: 'a signal oe;
+  mutable updated: bool
+}
 and 'a signal = SignalID of 'a signal_data
+
 let signal_id (SignalID data) = data.id
 let signal_of_data data = SignalID data
 let signal_get_data (SignalID data) = data
-
 
 let never = Never
 let app  = fun f x -> App (f, x)

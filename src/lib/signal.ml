@@ -19,9 +19,6 @@ let init_signal k v =
   v @: mkSig k
 
 let rec map f s = f (head s) @: (map f |>> tail s)
-  
-  (* match SignalUtils.hd_tail s with
-  | hd, tl -> f hd @: (map f |>> tl) *)
 
 let rec switch s d = 
   let cont = function

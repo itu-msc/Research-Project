@@ -2,13 +2,13 @@ open! Rizzo.Types
 open! Rizzo.Signal
 open! Rizzo.Channel
 
-(* let () =
+let () =
   let inputChan = console_input () in
   let inputSig =  init_signal inputChan "" in
 
-  let formattet_signal = map (fun v -> if v = "del" then Gc.full_major (); "Input: " ^ v) inputSig in
+  let formattet_signal = map (fun v -> "Input 1: " ^ v) inputSig in
   
-  console_output formattet_signal *)
+  console_output formattet_signal
 
 (* let () = 
     let c = new_channel () in
@@ -23,22 +23,21 @@ open! Rizzo.Channel
     step c ""; *)
 
 let () =
-  let one_sec, stop = clock_signal 1.0 in
+  (* let one_sec, stop = clock_signal 1.0 in *)
   let inputChan = console_input () in
   let inputSig = init_signal inputChan "" in
   let countSig = scan (fun c _ -> c + 1) 0 inputSig in
-  let countSeconds = scan (fun c _ -> c + 1) 0 one_sec in
-  console_output (map (Format.asprintf "You have written something '%a' times" Format.pp_print_int) countSig);
+  (* let countSeconds = scan (fun c _ -> c + 1) 0 one_sec in *)
+  console_output (map (Format.asprintf "You have written something '%a' times after this many secconds" Format.pp_print_int) countSig);
   console_output (map (fun s ->
-    if s = "del" then Gc.full_major ();
     Rizzo.Internals.Heap.print_heap ();
-    "input: " ^ s
+    "input 2: " ^ s
   ) inputSig);
 
-  console_output (map (Format.asprintf "We have been going for %a" Format.pp_print_int) countSeconds);
+  (* console_output (map (Format.asprintf "We have been going for %a" Format.pp_print_int) countSeconds); *)
 
   start_event_loop ();
-  stop ()
+  (* stop () *)
 
 
 

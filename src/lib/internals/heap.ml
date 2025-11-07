@@ -65,9 +65,10 @@ let alloc : type a. a -> a signal oe -> a signal_data =
     let signal_data_weak = 
       let w = Weak.create 1 in 
       let to_insert = Some (Obj.magic signal_data : data signal_data) in
-      Weak.set w 0 to_insert; w 
+      Weak.set w 0 to_insert; 
+      w 
     in
-    let new_node = { 
+    let new_node = {
       id = signal_id;
       prev = cursor.prev; next = Some cursor;
       value = signal_data_weak;
@@ -108,19 +109,28 @@ let find (id: int) =
   aux heap.head
 
 let print_heap () =
+  let collected_nodes = ref [] in
   let rec aux n = 
     match n with
     | None -> ()
     | Some nn when nn.id = dummy_id -> Printf.printf "| "; aux nn.next
-    | Some nn -> match node_get_data nn with
-      | None -> aux nn.next (* gc'ed *)
+    | Some nn -> 
+      match node_get_data nn with
+      | None -> 
+        collected_nodes := nn.id :: !collected_nodes;
+        Printf.printf "{%d} " nn.id;
+        aux nn.next (* gc'ed *)
       | Some _ -> 
         let id = nn.id in
         if nn == heap.cursor then Printf.printf "(%d) " id
-        else Printf.printf "%d " id; aux nn.next
+        else Printf.printf "%d " id; 
+        aux nn.next
   in
   aux heap.head;
-  Printf.printf "\n"
+  Printf.printf "\n";
+  if !collected_nodes <> [] then
+    Printf.printf "Collected nodes: %s\n" 
+      (String.concat ", " (List.map string_of_int !collected_nodes));
 
 (* does channel and oe have to be the same type here? *)
 let rec ticked : type a . 'b channel -> a oe -> bool =
@@ -199,7 +209,7 @@ let step_cursor : 'a channel -> 'a -> unit = fun k v ->
       let v' = signal_get_data (advance k v2 v) in
       (* TODO: Figure out why this is necessary *)
       let _ = match find v'.id with 
-      | None -> ()
+      | None -> failwith ("Heap.step_cursor: advanced signal not found in heap for id " ^ string_of_int v'.id)
       | Some n -> delete n in
       update heap.cursor v'.head v'.tail;
       cursor_data.updated <- true;

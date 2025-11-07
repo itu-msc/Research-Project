@@ -130,7 +130,7 @@ let print_heap () =
   Printf.printf "\n";
   if !collected_nodes <> [] then
     Printf.printf "Collected nodes: %s\n" 
-      (String.concat ", " (List.map string_of_int !collected_nodes));
+      (String.concat ", " (List.map string_of_int !collected_nodes))
 
 (* does channel and oe have to be the same type here? *)
 let rec ticked : type a . 'b channel -> a oe -> bool =

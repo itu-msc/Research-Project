@@ -7,12 +7,7 @@ let const x = x @: never
 let head s = (Internals.MainTypes.signal_get_data s).head
 
 let mkSig k =
-  let rec aux k = 
-    let f = delay (fun a -> a @: aux k) in
-    (* Printf.printf "aux creating an O> - memory of f: %d\n" (Obj.magic f); *)
-    app f (wait k)
-    
-  in
+  let rec aux k = (fun a -> a @: aux k) |>> wait k in
   aux k
 
 let init_signal k v =

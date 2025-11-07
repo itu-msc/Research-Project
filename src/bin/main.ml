@@ -10,6 +10,18 @@ open! Rizzo.Channel
   
   console_output formattet_signal *)
 
+(* let () = 
+    let c = new_channel () in
+    let _in_signal = "" @: mkSig c in
+    (* let _some_signal = map Fun.id _in_signal in *)
+    (* let _ = map ((^) "hi: ") in_signal in  *)
+    print_endline "---";
+    step c "";
+    print_endline "---";
+    step c "";
+    print_endline "---";
+    step c ""; *)
+
 let () =
   let one_sec, stop = clock_signal 1.0 in
   let inputChan = console_input () in

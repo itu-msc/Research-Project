@@ -1,41 +1,34 @@
 open Types
 
-module SignalUtils = struct 
-  open Internals.Heap
-  open Internals.MainTypes
-  (* helper since we cannot pattern match, and the information is on the heap *)
-  let hd_tail s =
-    let {head; tail; _} = signal_get_data s in 
-    (head, tail)
-
-    let alloc_signal : 'a -> 'a signal oe -> 'a signal =
-      fun h t -> signal_of_data (alloc h t)
-end
-
-let ( @: ) = SignalUtils.alloc_signal
+let ( @: ) = fun h t -> Internals.MainTypes.signal_of_data (Internals.Heap.alloc h t)
 
 let const x = x @: never
 
+let head s = (Internals.MainTypes.signal_get_data s).head
+
 let mkSig k =
-  let rec aux k = (fun a -> a @: aux k) |>> wait k
+  let rec aux k = 
+    let f = delay (fun a -> a @: aux k) in
+    (* Printf.printf "aux creating an O> - memory of f: %d\n" (Obj.magic f); *)
+    app f (wait k)
+    
   in
   aux k
 
 let init_signal k v =
   v @: mkSig k
 
-let rec map f s = match SignalUtils.hd_tail s with
-  | hd, tl -> f hd @: (map f |>> tl)
+let rec map f s = f (head s) @: (map f |>> tail s)
+  
+  (* match SignalUtils.hd_tail s with
+  | hd, tl -> f hd @: (map f |>> tl) *)
 
 let rec switch s d = 
   let cont = function
     | Fst s' -> switch s' d
     | Snd d' -> d'
     | Both (_, d') -> d' in
-  let hd, tl = SignalUtils.hd_tail s in
-  hd @: (cont |>> (sync tl d))
-
-let head s = fst (SignalUtils.hd_tail s)
+  head s @: (cont |>> (sync (tail s) d))
 
 let rec zip xs ys =
   let cont = function
@@ -46,7 +39,7 @@ let rec zip xs ys =
   (head xs, head ys) @: (cont |>> sync (tail xs) (tail ys))
 
 let rec switchS s d = 
-  let x, xs = SignalUtils.hd_tail s in
+  let x, xs = head s, tail s in
   let cont = function 
     | Fst xs' -> switchS xs' d
     | Snd f -> f x
@@ -55,7 +48,7 @@ let rec switchS s d =
   x @: (cont |>> sync xs d)
 
 let rec switchR s d = 
-  let x, xs = SignalUtils.hd_tail s in
+  let x, xs = head s, tail s in
   let cont = function
     | Fst xs' -> switchR xs' d
     | Snd fs -> head fs x
@@ -64,11 +57,11 @@ let rec switchR s d =
   x @: (cont |>> sync xs d)
 
 let pp_signal pp_a out s =
-  let hd, tl = SignalUtils.hd_tail s in
+  let hd, tl = head s, tail s in
   Format.fprintf out "%a :: oe(%a)" pp_a hd pp_oe tl
 
 let rec scan f b s = 
-  let hd, tl = SignalUtils.hd_tail s in
+  let hd, tl = head s, tail s in
   let b' = f b hd in
   b' @: (scan f b' |>> tl)
 

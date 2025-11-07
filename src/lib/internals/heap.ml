@@ -195,6 +195,10 @@ let step_cursor : 'a channel -> 'a -> unit = fun k v ->
       incr_cursor ()
     else
       let v' = signal_get_data (advance k v2 v) in
+      (* TODO: Figure out why this is necessary *)
+      let _ = match find v'.id with 
+      | None -> ()
+      | Some n -> delete n in
       update heap.cursor v'.head v'.tail;
       cursor_data.updated <- true;
       incr_cursor ()
@@ -206,5 +210,4 @@ let step k v : unit =
     else let () = step_cursor k v in inner () 
   in 
   reset_cursor ();
-  inner ();
-  Gc.full_major ()
+  inner ()

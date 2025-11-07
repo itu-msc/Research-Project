@@ -25,10 +25,10 @@ type _ oe =
   | Trig : 'a option signal -> 'a oe
   | Tail : 'a signal -> 'a signal oe
 and 'a signal_data = { id: int; mutable head: 'a; mutable tail: 'a signal oe; mutable updated: bool}
-and 'a signal = Signal of 'a signal_data
-let signal_id (Signal data) = data.id
-let signal_of_data data = Signal data
-let signal_get_data (Signal data) = data
+and 'a signal = SignalID of 'a signal_data
+let signal_id (SignalID data) = data.id
+let signal_of_data data = SignalID data
+let signal_get_data (SignalID data) = data
 
 
 let never = Never
@@ -47,9 +47,9 @@ let rec pp_oe_helper : type a. Format.formatter -> a oe -> unit=
   fun out -> function 
   | Never -> Format.fprintf out "never"
   | Wait (Index k) -> Format.fprintf out "wait %a"  Format.pp_print_int k
-  | Tail (Signal d) -> Format.fprintf out "tail %a" Format.pp_print_int d.id
+  | Tail (SignalID d) -> Format.fprintf out "tail %a" Format.pp_print_int d.id
   | Sync (a,b) -> Format.fprintf out "sync (%a, %a)" pp_oe_helper a pp_oe_helper b
   | App (_, a) -> Format.fprintf out "app _ (%a)" pp_oe_helper a
-  | Trig (Signal d) -> Format.fprintf out "trig %a" Format.pp_print_int d.id
+  | Trig (SignalID d) -> Format.fprintf out "trig %a" Format.pp_print_int d.id
 
 let pp_oe out x = Format.fprintf out "%a" pp_oe_helper x

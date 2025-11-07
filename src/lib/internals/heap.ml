@@ -22,11 +22,10 @@ let dummy_id = -1
 let node_get_data : type a. node -> a signal_data option = 
   fun n -> match Weak.get n.value 0 with
     | None -> None (* gc'ed *)
-    | _ when n.id = dummy_id -> None (* to avoid segmentation faults from dummy nodes *)
     | x -> Obj.magic x
 
 let create_dummy_node () =
-  { prev = None; next = None; value = Obj.magic (); id = dummy_id; }
+  { prev = None; next = None; value = Weak.create 1; id = dummy_id; }
 
 let heap: linkedList = 
   let head = create_dummy_node () in

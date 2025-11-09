@@ -19,11 +19,27 @@ let _paper_example =
 
   (* console_output (map (fun s -> "neg event: " ^ s) neg_sig);
   console_output (map (fun m -> "num event: " ^ string_of_int m) num_sig); *)
-  let neg_fun =
-    (fun n -> n) @: (map (fun _ -> fun n -> print_endline ("neg n: " ^ string_of_int n); -n) |>> neg_sig)
+  (* One-shot negation: "negate" arms negation, next number disarms it. *)
+  (* Build event streams explicitly to avoid type ambiguity. *)
+  let neg_events = (map (fun _ -> true) |>> neg_sig) in    (* bool event *)
+  let num_events = (map (fun _ -> ())  |>> num_sig) in     (* unit event *)
+  let neg_state =
+    let rec f armed =
+      let cont = function
+        | Fst _ -> f true
+        | Snd _ -> f false
+        | Both _ -> f false
+      in
+      armed @: (cont |>> sync neg_events num_events)
+    in
+    f false
   in
+  let neg_fun =
+    map (fun armed -> if armed then (fun n -> -n) else (fun n -> n)) neg_state
+  in
+  (* Addition remains event-driven; keep functions pure (no prints here). *)
   let add_fun =
-    (fun n -> n) @: (map (fun m -> fun n -> print_endline ("add n: " ^ (string_of_int n ^ (" m: " ^ string_of_int m))); m + n) |>> num_sig)
+    (fun n -> n) @: (map (fun m -> fun n -> m + n) |>> num_sig)
   in
 
   let sig' = interleave Fun.compose neg_fun add_fun

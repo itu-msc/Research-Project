@@ -103,8 +103,7 @@ let find (id: int) =
     match n with
     | None -> None
     | Some nn ->
-        if nn = heap.cursor then None
-        else if nn.id = id then Some nn
+        if nn.id = id then Some nn
         else aux nn.next in
   aux heap.head
 

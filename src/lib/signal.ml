@@ -69,14 +69,21 @@ let rec jump f s =
   head s @: (cont |>> (tail s))
 
 (* TODO: probably a very wrong implementation *)
-let rec interleave : ('a -> 'a -> 'a) -> 'a signal -> 'a signal -> 'a signal =
+let interleave : ('a -> 'a -> 'a) -> 'a signal -> 'a signal -> 'a signal =
   fun f xs ys ->
-    let cont = function
-    | Fst xs'         -> interleave f xs' ys
-    | Snd ys'         -> interleave f xs ys'
-    | Both (xs', ys') -> interleave f xs' ys'
+    (* Produce a value whenever either input signal advances.
+       If only xs advances emit its new head; if only ys advances emit its new head;
+       if both advance simultaneously emit f applied to their new heads.
+       Initial element chosen as the current head of xs. *)
+    let rec build current xs ys =
+      let cont = function
+        | Fst xs' -> build (head xs') xs' ys
+        | Snd ys' -> build (head ys') xs ys'
+        | Both (xs', ys') -> build (f (head xs') (head ys')) xs' ys'
+      in
+      current @: (cont |>> sync (tail xs) (tail ys))
     in
-    f (head xs) (head ys) @: (cont |>> (sync (tail xs) (tail ys) ))
+    build (head xs) xs ys
 
 let filter_map p s =
   mkSig (Channel.chan_of_trig @@ trig (None @: (map p |>> s)))
@@ -98,7 +105,7 @@ let clock_channel interval =
       let now = Unix.gettimeofday () in
       let wait_time = max 0.0 (next -. now) in
       Unix.sleepf wait_time;
-      Internals.Heap.step chan next; (* remove int conversion if we want float *)
+      Internals.Heap.step chan next;
       aux (next +. interval)
     with exn ->
       prerr_endline ("clock thread error: " ^ Printexc.to_string exn);

@@ -3,9 +3,10 @@ open! Rizzo.Signal
 open! Rizzo.Channel
 
 let _paper_example =
+  let debug = false in
   let every_second, every_second_stop = clock_signal 1.0 in
   let read_int = int_of_string_opt in
-  let nats init = scan (fun n _ -> n + 1) init every_second in
+  let nats init = scan (fun n i -> if debug then print_endline ("tick: " ^ string_of_int (n + 1) ^ " time: " ^ (string_of_int (int_of_float i))); n + 1) init every_second in
 
   let console  = mkSig @@ console_input () in
   let quit_sig = filter ((=) "quit") console in

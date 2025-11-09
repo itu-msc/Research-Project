@@ -14,6 +14,7 @@ let init_signal k v =
   v @: mkSig k
 
 let rec map f s = f (head s) @: (map f |>> tail s)
+let mapD f s = map f |>> s
 
 let rec switch s d = 
   let cont = function
@@ -71,11 +72,19 @@ let rec jump f s =
 let rec interleave : ('a -> 'a -> 'a) -> 'a signal -> 'a signal -> 'a signal =
   fun f xs ys ->
     let cont = function
-    | Fst xs'         -> f (head xs') (head ys ) @: (tail @@ interleave f xs' ys)
-    | Snd ys'         -> f (head xs ) (head ys') @: (tail @@ interleave f xs ys')
-    | Both (xs', ys') -> f (head xs') (head ys') @: (tail @@ interleave f xs' ys')
+    | Fst xs'         -> interleave f xs' ys
+    | Snd ys'         -> interleave f xs ys'
+    | Both (xs', ys') -> interleave f xs' ys'
     in
     f (head xs) (head ys) @: (cont |>> (sync (tail xs) (tail ys) ))
+
+let filter_map p s =
+  mkSig (Channel.chan_of_trig @@ trig (None @: (map p |>> s)))
+
+let filter p = filter_map (fun x -> if p x then Some x else None)
+
+let triggerD (f: 'a -> 'b -> 'c) (s1 : 'a signal oe) (s2 : 'b signal) : 'c signal oe = 
+  (fun s1' -> map (fun (a,b) -> f a b) (sample s1' s2)) |>> s1
 
 (* TODO: Not thread safe, this can cause race conditions.
   When channels can be other things than int then change this to use float. *)
@@ -110,6 +119,12 @@ let output_signals = ref []
 
 let console_output (s : string signal) : unit =
   output_signals := map print_endline s :: !output_signals
+
+let console_outputD (s : string signal oe) : unit =
+  output_signals := switch (const ()) (mapD print_endline s) :: !output_signals
+
+let set_quit (s : 'a signal oe) : unit = 
+  output_signals := switch (const ()) (mapD (fun _ -> exit 0) s) :: !output_signals
 
 let start_event_loop () : unit = 
   while true do

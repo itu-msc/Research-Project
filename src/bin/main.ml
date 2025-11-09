@@ -2,42 +2,53 @@ open! Rizzo.Types
 open! Rizzo.Signal
 open! Rizzo.Channel
 
-let () =
-  let inputChan = console_input () in
-  let inputSig =  init_signal inputChan "" in
+let _paper_example =
+  let every_second, every_second_stop = clock_signal 1.0 in
+  let read_int = int_of_string_opt in
+  let nats init = scan (fun n _ -> n + 1) init every_second in
 
-  let formattet_signal = map (fun v -> "Input 1: " ^ v) inputSig in
-  
-  console_output formattet_signal
-
-(* let () = 
-    let c = new_channel () in
-    let _in_signal = "" @: mkSig c in
-    (* let _some_signal = map Fun.id _in_signal in *)
-    (* let _ = map ((^) "hi: ") in_signal in  *)
-    print_endline "---";
-    step c "";
-    print_endline "---";
-    step c "";
-    print_endline "---";
-    step c ""; *)
-
-let () =
-  (* let one_sec, stop = clock_signal 1.0 in *)
+  let console  = mkSig @@ console_input () in
+  let quit_sig = filter ((=) "quit") console in
+  let show_sig = filter ((=) "show") console in
+  let neg_sig  = filter ((=) "negate") console in
+  let num_sig  = filter_map read_int console in
+  (* there's a bug here, when you type a number 'n' then 
+     then 'n' is first added to the counter and thereafter
+     the counter is multiplied with -1, oops haha  
+  *)
+  let sig' =
+    interleave
+      Fun.compose
+      (map (fun _ -> fun n -> -n   ) ("" @: neg_sig))
+      (map (fun m -> fun n -> m + n) (0  @: num_sig))
+  in
+  let rec nats' init =
+    switchS (nats init) ((fun s -> fun n -> nats' (head s n)) |>> tail sig')
+  in
+  let show_nat = triggerD (fun _ n -> n) show_sig (nats' 0)  in
+  console_outputD (mapD string_of_int show_nat);
+  set_quit quit_sig;
+  start_event_loop ();
+  every_second_stop ()
+      
+(* let () =
+  let one_sec, stop = clock_signal 1.0 in
   let inputChan = console_input () in
   let inputSig = init_signal inputChan "" in
   let countSig = scan (fun c _ -> c + 1) 0 inputSig in
-  (* let countSeconds = scan (fun c _ -> c + 1) 0 one_sec in *)
+  let countSeconds = scan (fun c _ -> c + 1) 0 one_sec in
+  let thirdSec = 0 @: filter (fun c -> c mod 3 = 0) (tail countSeconds) in
   console_output (map (Format.asprintf "You have written something '%a' times after this many secconds" Format.pp_print_int) countSig);
   console_output (map (fun s ->
     Rizzo.Internals.Heap.print_heap ();
     "input 2: " ^ s
   ) inputSig);
 
-  (* console_output (map (Format.asprintf "We have been going for %a" Format.pp_print_int) countSeconds); *)
+  console_output (map (Format.asprintf "We have been going for %a" Format.pp_print_int) countSeconds);
+  console_output (map (Format.asprintf "FIZZ: %a" Format.pp_print_int) thirdSec);
 
   start_event_loop ();
-  (* stop () *)
+  stop () *)
 
 
 

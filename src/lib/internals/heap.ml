@@ -148,7 +148,7 @@ let rec ticked : type a . 'b channel -> a oe -> bool =
     | Trig s ->
       (* TODO: should we still check the signal is in heap? *)
       let data = signal_get_data s in
-      data.updated
+      data.updated && Option.is_some data.head
     | Tail s ->
       let data = signal_get_data s in
       ticked k data.tail

@@ -5,7 +5,7 @@ open! Rizzo.Channel
 let _paper_example =
   let every_second, every_second_stop = clock_signal 1.0 in
   let read_int = int_of_string_opt in
-  let nats init = scan (fun n _ -> n + 1) init every_second in
+  let nats init = scan (fun n i -> print_endline ("tick: " ^ string_of_int (n + 1) ^ " time: " ^ (string_of_int (int_of_float i))); n + 1) init every_second in
 
   let console  = mkSig @@ console_input () in
   let quit_sig = filter ((=) "quit") console in
@@ -16,11 +16,17 @@ let _paper_example =
      then 'n' is first added to the counter and thereafter
      the counter is multiplied with -1, oops haha  
   *)
-  let sig' =
-    interleave
-      Fun.compose
-      (map (fun _ -> fun n -> -n   ) ("" @: neg_sig))
-      (map (fun m -> fun n -> m + n) (0  @: num_sig))
+
+  (* console_output (map (fun s -> "neg event: " ^ s) neg_sig);
+  console_output (map (fun m -> "num event: " ^ string_of_int m) num_sig); *)
+  let neg_fun =
+    (fun n -> n) @: (map (fun _ -> fun n -> print_endline ("neg n: " ^ string_of_int n); -n) |>> neg_sig)
+  in
+  let add_fun =
+    (fun n -> n) @: (map (fun m -> fun n -> print_endline ("add n: " ^ (string_of_int n ^ (" m: " ^ string_of_int m))); m + n) |>> num_sig)
+  in
+
+  let sig' = interleave Fun.compose neg_fun add_fun
   in
   let rec nats' init =
     switchS (nats init) ((fun s -> fun n -> nats' (head s n)) |>> tail sig')

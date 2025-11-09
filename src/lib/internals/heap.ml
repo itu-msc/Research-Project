@@ -113,15 +113,22 @@ let print_heap () =
   let rec aux n = 
     match n with
     | None -> ()
-    | Some nn when nn.id = dummy_id -> Printf.printf "| "; aux nn.next
+    | Some nn when nn.id = dummy_id ->
+      if nn == heap.cursor
+        then  Printf.printf "(|) "
+        else Printf.printf "| ";
+      aux nn.next
     | Some nn -> 
       match node_get_data nn with
       | None -> 
         collected_nodes := nn.id :: !collected_nodes;
         Printf.printf "{%d} " nn.id;
         aux nn.next (* gc'ed *)
-      | Some _ -> 
+      | Some n ->
         let id = nn.id in
+        if n.updated then
+          Printf.printf "[%d] " nn.id
+        else 
         if nn == heap.cursor then Printf.printf "(%d) " id
         else Printf.printf "%d " id; 
         aux nn.next
@@ -224,4 +231,5 @@ let step k v : unit =
   in 
   reset_cursor ();
   inner ();
+  Gc.full_major ();
   Mutex.unlock mutex

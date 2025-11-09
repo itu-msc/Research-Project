@@ -72,9 +72,15 @@ let rec jump f s =
 let rec interleave : ('a -> 'a -> 'a) -> 'a signal -> 'a signal -> 'a signal =
   fun f xs ys ->
     let cont = function
-    | Fst xs'         -> interleave f xs' ys
-    | Snd ys'         -> interleave f xs ys'
-    | Both (xs', ys') -> interleave f xs' ys'
+    | Fst xs'         -> 
+      print_endline "Fst side of interleave fired!";
+      interleave f xs' ys
+    | Snd ys'         -> 
+      print_endline "Snd side of interleave fired!";
+      interleave f xs ys'
+    | Both (xs', ys') -> 
+      print_endline "Both sides of interleave fired!";
+      interleave f xs' ys'
     in
     f (head xs) (head ys) @: (cont |>> (sync (tail xs) (tail ys) ))
 
@@ -98,7 +104,7 @@ let clock_channel interval =
       let now = Unix.gettimeofday () in
       let wait_time = max 0.0 (next -. now) in
       Unix.sleepf wait_time;
-      Internals.Heap.step chan next; (* remove int conversion if we want float *)
+      Internals.Heap.step chan next;
       aux (next +. interval)
     with exn ->
       prerr_endline ("clock thread error: " ^ Printexc.to_string exn);

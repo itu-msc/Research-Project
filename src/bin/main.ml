@@ -3,7 +3,7 @@ open! Rizzo.Signal
 open! Rizzo.Channel
 
 let _paper_example =
-  let debug = false in
+  let debug = true in
   let every_second, every_second_stop = clock_signal 1.0 in
   let read_int = int_of_string_opt in
   let nats init = scan (fun n i -> if debug then print_endline ("tick: " ^ string_of_int (n + 1) ^ " time: " ^ (string_of_int (int_of_float i))); n + 1) init every_second in
@@ -13,18 +13,14 @@ let _paper_example =
   let show_sig = filter ((=) "show") console in
   let neg_sig  = filter ((=) "negate") console in
   let num_sig  = filter_map read_int console in
-  (* there's a bug here, when you type a number 'n' then 
-     then 'n' is first added to the counter and thereafter
-     the counter is multiplied with -1, oops haha  
-  *)
   let sig' =
     interleave
       Fun.compose
-      (map (fun _ -> fun n -> -n   ) ("" @: neg_sig))
-      (map (fun m -> fun n -> m + n) (0  @: num_sig))
+      (map (fun _ n -> -n   ) ("" @: neg_sig))
+      (map (fun m n -> m + n) (0  @: num_sig))
   in
   let rec nats' init =
-    switchS (nats init) ((fun s -> fun n -> nats' (head s n)) |>> tail sig')
+    switchS (nats init) ((fun s n -> nats' (head s n)) |>> tail sig')
   in
   let show_nat = triggerD (fun _ n -> n) show_sig (nats' 0)  in
   console_outputD (mapD string_of_int show_nat);

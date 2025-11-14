@@ -8,7 +8,7 @@ type ('a, 'b) sync =
 (* a might get evaluated which we dont want, 
    it might be worth checking if we can get call by name or use Lazy
   https://stackoverflow.com/questions/71634864/does-ocaml-support-call-by-name-parameter-passing *)
-let delay a : 'a oa = fun () -> a
+let delay (a: unit -> 'a) : 'a oa = a
 let adv : 'a oa -> 'a = fun d -> d ()
 
 type 'a channel = Index of int
@@ -43,10 +43,10 @@ let wait = fun c -> Wait c
 let trig = fun s -> Trig s
 let tail = fun s -> Tail s
 
-let fa f x = app (delay f) x
+let fa f x = app (delay (fun () -> f)) x
 let (|>>) = fa
 
-let ostar (f: ('a -> 'b) oa) (x: 'a oa) : 'b oa = delay (adv f (adv x))
+let ostar (f: ('a -> 'b) oa) (x: 'a oa) : 'b oa = delay (fun () -> (adv f (adv x)))
 
 let rec pp_oe_helper : type a. Format.formatter -> a oe -> unit= 
   fun out -> function 

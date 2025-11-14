@@ -8,7 +8,7 @@ let _paper_example =
   let read_int = int_of_string_opt in
   let nats init = scan (fun n i -> if debug then print_endline ("tick: " ^ string_of_int (n + 1) ^ " time: " ^ (string_of_int (int_of_float i))); n + 1) init every_second in
 
-  let console  = mkSig @@ console_input () in
+  let console  = console_input () |> wait |> mkSig in
   let quit_sig = filter ((=) "quit") console in
   let show_sig = filter ((=) "show") console in
   let neg_sig  = filter ((=) "negate") console in

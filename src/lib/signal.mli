@@ -4,7 +4,8 @@ val (@:)        : 'a -> 'a signal oe -> 'a signal
 val const       : 'a -> 'a signal
 val map         : ('a -> 'b) -> 'a signal -> 'b signal
 val mapD        : ('a -> 'b) -> 'a signal oe -> 'b signal oe
-val mkSig       : 'a channel -> 'a signal oe
+val mkSig       : 'a oe -> 'a signal oe
+val mkSig_of_channel : 'a channel -> 'a signal oe
 val switch      : 'a signal -> 'a signal oe -> 'a signal
 val head        : 'a signal -> 'a
 val zip         : 'a signal -> 'b signal -> ('a * 'b) signal

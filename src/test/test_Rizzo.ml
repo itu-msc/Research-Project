@@ -49,7 +49,7 @@ let simple_button txt = Button (const txt, const Black, new_channel ())
 let on_click (Button (_,_, k)) = k
 let simple_tf txt = 
   let k : string channel = new_channel () in
-  TextField (txt @: mkSig k, const Black, k)
+  TextField (txt @: mkSig (wait k), const Black, k)
 
 let _gui = 
   let btn = simple_button "add" in

@@ -6,15 +6,11 @@ let const x = x @: never
 
 let head s = (Internals.MainTypes.signal_get_data s).head
 
-let mkSig k =
-  let rec aux k = (fun a -> a @: aux k) |>> wait k in
-  aux k
-
-let rec mksig_of_oe : 'a oe -> 'a signal oe = 
-  fun o -> (fun a -> a @: (mksig_of_oe o)) |>> o
+let rec mkSig d = (fun a -> a @: (mkSig d)) |>> d
+let mkSig_of_channel k = mkSig @@ wait k
 
 let init_signal k v =
-  v @: mkSig k
+  v @: mkSig_of_channel k
 
 let rec map f s = f (head s) @: (map f |>> tail s)
 let mapD f s = map f |>> s
@@ -88,8 +84,7 @@ let interleave : ('a -> 'a -> 'a) -> 'a signal -> 'a signal -> 'a signal =
     in
     build (head xs) xs ys
 
-let filter_map p s =
-  mksig_of_oe (trig (None @: mapD p s))
+let filter_map p s = mkSig (trig (None @: mapD p s))
 
 let filter p = filter_map (fun x -> if p x then Some x else None)
 

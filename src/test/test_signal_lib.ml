@@ -6,9 +6,9 @@ open Rizzo.Channel
 let () = 
   let c1 : int channel = new_channel () in
   let slow_chan : int channel = new_channel () in
-  let numbers = 0 @: mkSig c1 in
+  let numbers = 0 @: mkSig (wait c1) in
   let numbers_and_double = zip numbers (map (( * ) 2) numbers) in
-  let switched = switch numbers (mkSig slow_chan) in
+  let switched = switch numbers (mkSig (wait (slow_chan))) in
   let pp_int_signal = pp_signal Format.pp_print_int in
   let pp_int_pair_signal = pp_signal (fun out p -> Format.fprintf out "(%a, %a)" Format.pp_print_int (fst p) Format.pp_print_int (snd p)) in
   

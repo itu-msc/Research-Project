@@ -1,58 +1,43 @@
-@misc{4004-wikichip,
-  title   = {4004 - Intel},
-  url     = {https://en.wikichip.org/wiki/intel/mcs-4/4004},
-  urldate = {23-11-19}
+@article{bahr_asynchronous_2023,
+	title = {Asynchronous Modal {FRP}},
+	volume = {7},
+	issn = {2475-1421},
+	url = {https://dl.acm.org/doi/10.1145/3607847},
+	doi = {10.1145/3607847},
+	abstract = {{PATRICK} {BAHR}, {IT} University of Copenhagen, Denmark {RASMUS} {EJLERS} {MØGELBERG}, {IT} University of Copenhagen, Denmark Over the past decade, a number of languages for functional reactive programming ({FRP}) have been suggested, which use modal types to ensure properties like causality, productivity and lack of space leaks. So far, almost all of these languages have included a modal operator for delay on a global clock. For some applications, however, a global clock is unnatural and leads to leaky abstractions as well as ineﬃcient implementations. While modal languages without a global clock have been proposed, no operational properties have been proved about them, yet. This paper proposes Async {RaTT}, a new modal language for asynchronous {FRP}, equipped with an operational semantics mapping complete programs to machines that take asynchronous input signals and produce output signals. The main novelty of Async {RaTT} is a new modality for asynchronous delay, allowing each output channel to be associated at runtime with the set of input channels it depends on, thus causing the machine to only compute new output when necessary. We prove a series of operational properties including causality, productivity and lack of space leaks. We also show that, although the set of input channels associated with an output channel can change during execution, upper bounds on these can be determined statically by the type system. {CCS} Concepts: • Software and its engineering → Functional languages; Data ﬂow languages; Recursion; • Theory of computation → Operational semantics.},
+	pages = {476--510},
+	issue = {{ICFP}},
+	journaltitle = {Proceedings of the {ACM} on Programming Languages},
+	shortjournal = {Proc. {ACM} Program. Lang.},
+	author = {Bahr, Patrick and Møgelberg, Rasmus Ejlers},
+	urldate = {2025-09-12},
+	date = {2023-08-30},
+	langid = {english},
 }
 
-@article{sestoft2016,
-  author = {Peter Sestoft},
-  title  = {Microbenchmarks in Java and C#},
-  year   = {2016}
+@InProceedings{ElliottHudak97:Fran,
+  title        = {Functional Reactive Animation},
+  url          = {http://conal.net/papers/icfp97/},
+  author       = "Conal Elliott and Paul Hudak",
+  booktitle    = "International Conference on Functional Programming",
+  year         = 1997
 }
 
-@article{sestoft2019,
-  author = {Peter Sestoft},
-  title  = {A multicore performance mystery solved},
-  year   = {2019}
+@incollection{gebser_asynchronous_2023,
+	location = {Cham},
+	title = {Asynchronous Reactive Programming with Modal Types in Haskell},
+	volume = {14512},
+	isbn = {978-3-031-52037-2 978-3-031-52038-9},
+	url = {https://link.springer.com/10.1007/978-3-031-52038-9_2},
+	abstract = {The implementation of asynchronous systems, in particular graphical user interfaces, is traditionally based on an imperative model that uses shared mutable state and callbacks. While eﬃcient, the combination of shared mutable state and callbacks is notoriously diﬃcult to reason about and prone to errors. Functional reactive programming ({FRP}) provides an elegant alternative and recent theoretical advances in modal {FRP} suggest that it can be eﬃcient as well.},
+	pages = {18--36},
+	booktitle = {Practical Aspects of Declarative Languages},
+	publisher = {Springer Nature Switzerland},
+	author = {Bahr, Patrick and Houlborg, Emil and Rørdam, Gregers Thomas Skat},
+	editor = {Gebser, Martin and Sergey, Ilya},
+	urldate = {2025-11-01},
+	date = {2023},
+	langid = {english},
+	doi = {10.1007/978-3-031-52038-9_2},
+	note = {Series Title: Lecture Notes in Computer Science},
 }
-
-@article{apollo11,
-  author  = {Eldon C. Hall},
-  journal = {MIT's role in project apollo},
-  title   = {Final report on contracts NAS 9-163 and NAS 94065},
-  volume  = {III},
-  year    = {1972},
-  url     = {http://ibiblio.org/apollo/hrst/archive/1029.pdf},
-  urldate = {2023-11-20}
-}
-
-@book{akinshin2019,
-  author    = {Akinshin, Andrey},
-  title     = {Pro .NET Benchmarking},
-  publisher = {Apress},
-  year      = {2019},
-  edition   = {1},
-  pages     = {690},
-  isbn      = {978-1-4842-4940-6},
-  doi       = {10.1007/978-1-4842-4941-3}
-}
-
-@inproceedings{chit-kwan2019,
-  author    = {Lin, Chit-Kwan and Tarsa, Stephen J.},
-  booktitle = {2019 IEEE International Symposium on Workload Characterization (IISWC)},
-  title     = {Branch Prediction Is Not A Solved Problem: Measurements, Opportunities, and Future Directions},
-  year      = {2019},
-  volume    = {},
-  number    = {},
-  pages     = {228-238},
-  doi       = {10.1109/IISWC47752.2019.9042108}
-}
-
-@online{burtsev2021,
-  author       = {Anton Burtsev},
-  title        = {Computer Systems Architecture, Lecture 9: Out-of-order execution},
-  year         = {2021},
-  url          = {https://users.cs.utah.edu/~aburtsev/250P/lectures/lecture09-out-of-order/lecture09-out-of-order.pdf},
-  organization = {The University of Utah}
-}
-

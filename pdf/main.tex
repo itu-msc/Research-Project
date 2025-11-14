@@ -9,6 +9,8 @@
 \usepackage{graphicx}
 \usepackage{subcaption}
 \usepackage{amsfonts}
+\usepackage{amssymb}
+\usepackage{amsmath}
 
 \graphicspath{{images/}}
 
@@ -58,11 +60,14 @@
 \newcommand{\comment}[1]{\noindent\textcolor{matred}{#1}}
 \newcommand{\note}[1]{\noindent\textcolor{matgrey}{#1}}
 
+\definecolor{mytorq}{rgb}{.18,.83,.78}
+\newcommand{\todo}[1]{\textcolor{mytorq}{TODO: #1}}
+
 \addbibresource{references.bib}
 
 \title{
   \rule{\textwidth}{0.5pt}\\[4mm]
-  \huge{\textbf{Low-level CPU Architecture Illustrated with a High-level Language}}\\[2mm]
+  \huge{\textbf{Becoming a Rizzard - A Rizzo implementation}}\\[2mm]
   \large{Masters of Science in Computer Science}\\
   \large{Masters Research Project}\\
   \large{KIREPRO1PE}\\[4mm]

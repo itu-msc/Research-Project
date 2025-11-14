@@ -86,7 +86,7 @@ let interleave : ('a -> 'a -> 'a) -> 'a signal -> 'a signal -> 'a signal =
     build (head xs) xs ys
 
 let filter_map p s =
-  mkSig (Channel.chan_of_trig @@ trig (None @: (map p |>> s)))
+  mkSig (Channel.mk_trig_and_chan (None @: (map p |>> s)))
 
 let filter p = filter_map (fun x -> if p x then Some x else None)
 

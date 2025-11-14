@@ -90,7 +90,6 @@ let interleave : ('a -> 'a -> 'a) -> 'a signal -> 'a signal -> 'a signal =
 
 let filter_map p s =
   mksig_of_oe (trig (None @: mapD p s))
-  (* mkSig (Channel.chan_of_trig @@ trig (None @: (map p |>> s))) *)
 
 let filter p = filter_map (fun x -> if p x then Some x else None)
 

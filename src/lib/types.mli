@@ -12,7 +12,7 @@ type ('a, 'b) sync =
 
 val new_channel : unit -> 'a channel
 
-val delay : 'a -> 'a oa
+val delay : (unit -> 'a) -> 'a oa
 val adv : 'a oa -> 'a
 
 val never : 'a oe

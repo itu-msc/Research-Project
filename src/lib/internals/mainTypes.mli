@@ -40,7 +40,7 @@ val signal_id : 'a signal -> int
 val signal_of_data : 'a signal_data -> 'a signal
 val signal_get_data : 'a signal -> 'a signal_data
 
-val delay : 'a -> 'a oa
+val delay : (unit -> 'a) -> 'a oa
 val adv : 'a oa -> 'a
 
 val never : 'a oe

@@ -10,6 +10,9 @@ let mkSig k =
   let rec aux k = (fun a -> a @: aux k) |>> wait k in
   aux k
 
+let rec mksig_of_oe : 'a oe -> 'a signal oe = 
+  fun o -> (fun a -> a @: (mksig_of_oe o)) |>> o
+
 let init_signal k v =
   v @: mkSig k
 
@@ -86,7 +89,8 @@ let interleave : ('a -> 'a -> 'a) -> 'a signal -> 'a signal -> 'a signal =
     build (head xs) xs ys
 
 let filter_map p s =
-  mkSig (Channel.chan_of_trig @@ trig (None @: (map p |>> s)))
+  mksig_of_oe (trig (None @: mapD p s))
+  (* mkSig (Channel.chan_of_trig @@ trig (None @: (map p |>> s))) *)
 
 let filter p = filter_map (fun x -> if p x then Some x else None)
 

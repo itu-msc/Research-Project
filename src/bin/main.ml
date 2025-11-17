@@ -3,8 +3,9 @@ open! Rizzo.Signal
 open! Rizzo.Channel
 
 let _paper_example =
-  let debug = true in
+  let debug = false in
   let every_second, every_second_stop = clock_signal 1.0 in
+  let port_input = mkSig_of_channel @@ port_input 9000 in
   let read_int = int_of_string_opt in
   let nats init = scan (fun n i -> if debug then print_endline ("tick: " ^ string_of_int (n + 1) ^ " time: " ^ (string_of_int (int_of_float i))); n + 1) init every_second in
 
@@ -12,6 +13,7 @@ let _paper_example =
   let quit_sig = filter ((=) "quit") console in
   let show_sig = filter ((=) "show") console in
   let neg_sig  = filter ((=) "negate") console in
+  (* let echo_sig = filter ((=) "echo") console in *)
   let num_sig  = filter_map read_int console in
   let sig' =
     interleave
@@ -24,10 +26,24 @@ let _paper_example =
   in
   let show_nat = triggerD (fun _ n -> n) show_sig (nats' 0)  in
   console_outputD (mapD string_of_int show_nat);
+  console_outputD (mapD (fun s -> "echo: " ^ s) port_input);
   set_quit quit_sig;
   start_event_loop ();
   every_second_stop ()
       
+
+(* 
+PowerShell to write to port 9000:
+$client = New-Object System.Net.Sockets.TcpClient('localhost', 9000)
+$stream = $client.GetStream()
+$writer = New-Object System.IO.StreamWriter($stream)
+$writer.AutoFlush = $true
+$writer.WriteLine('show')
+$writer.WriteLine('quit')
+$writer.Close()
+$stream.Close()
+$client.Close() *)
+
 (* let () =
   let one_sec, stop = clock_signal 1.0 in
   let inputChan = console_input () in

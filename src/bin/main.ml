@@ -7,7 +7,7 @@ let _paper_example =
   let every_second, every_second_stop = clock_signal 1.0 in
   let port_input = mkSig_of_channel @@ port_input 9000 in
   let read_int = int_of_string_opt in
-  let nats init = scan (fun n i -> if debug then print_endline ("tick: " ^ string_of_int (n + 1) ^ " time: " ^ (string_of_int (int_of_float i))); n + 1) init every_second in
+  let nats init = scan (fun n _ -> n + 1) init every_second in
 
   let console  = console_input () |> wait |> mkSig in
   let quit_sig = filter ((=) "quit") console in
@@ -15,16 +15,19 @@ let _paper_example =
   let neg_sig  = filter ((=) "negate") console in
   (* let echo_sig = filter ((=) "echo") console in *)
   let num_sig  = filter_map read_int console in
-  let sig' =
+  let interleaved =
     interleave
       Fun.compose
       (map (fun _ n -> -n   ) ("" @: neg_sig))
       (map (fun m n -> m + n) (0  @: num_sig))
   in
   let rec nats' init =
-    switchS (nats init) ((fun s n -> nats' (head s n)) |>> tail sig')
+    switchS (nats init) ((fun s n -> nats' (head s n)) |>> tail interleaved)
   in
-  let show_nat = triggerD (fun _ n -> n) show_sig (nats' 0)  in
+  let nats_prim = nats' 0 in
+  if debug then
+   console_output (map (fun n -> "tick: " ^ string_of_int n) nats_prim);
+  let show_nat = triggerD (fun _ n -> n) show_sig (nats_prim) in
   console_outputD (mapD string_of_int show_nat);
   console_outputD (mapD (fun s -> "echo: " ^ s) port_input);
   set_quit quit_sig;

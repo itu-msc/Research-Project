@@ -214,7 +214,8 @@ let step_cursor : 'a channel -> 'a -> unit = fun k v ->
       incr_cursor ()
     else
       let v' = signal_get_data (advance k v2 v) in
-      (* TODO: Figure out why this is necessary *)
+      (* TODO: Figure out why this is necessary. 
+      Else we believe this helps keep the heap small without calling the garbage collector all the time *)
       let _ = match find v'.id with 
       | None -> failwith ("Heap.step_cursor: advanced signal not found in heap for id " ^ string_of_int v'.id)
       | Some n -> delete n in
@@ -222,7 +223,6 @@ let step_cursor : 'a channel -> 'a -> unit = fun k v ->
       cursor_data.updated <- true;
       incr_cursor ()
 
-(* add thread safe thing here *)
 let step k v : unit = 
   Mutex.lock mutex;
   let rec inner : unit -> unit = fun () ->
@@ -231,5 +231,4 @@ let step k v : unit =
   in 
   reset_cursor ();
   inner ();
-  Gc.full_major ();
   Mutex.unlock mutex

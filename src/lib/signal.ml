@@ -15,6 +15,13 @@ let init_signal k v =
 let rec map f s = f (head s) @: (map f |>> tail s)
 let mapD f s = map f |>> s
 
+let rec map2 f xs ys = 
+  let cont = function
+    | Fst xs' -> map2 f xs' ys
+    | Snd ys' -> map2 f xs  ys'
+    | Both (xs',ys') -> map2 f xs' ys'
+  in f (head xs) (head ys) @: (cont |>> sync (tail xs) (tail ys))
+
 let rec switch s d = 
   let cont = function
     | Fst s' -> switch s' d
@@ -39,14 +46,10 @@ let rec switchS s d =
   in
   x @: (cont |>> sync xs d)
 
+(** repeatedly switch whenever `d` ticks *)
 let rec switchR s d = 
-  let x, xs = head s, tail s in
-  let cont = function
-    | Fst xs' -> switchR xs' d
-    | Snd fs -> head fs x
-    | Both (_, fs) -> head fs x
-  in
-  x @: (cont |>> sync xs d)
+  let d' = (fun s' x -> switchR (head s' x) (tail s') ) |>> d in
+  switchS s d'
 
 let pp_signal pp_a out s =
   let hd, tl = head s, tail s in
@@ -57,17 +60,18 @@ let rec scan f b s =
   let b' = f b hd in
   b' @: (scan f b' |>> tl)
 
+let scanD f b s = scan f b |>> s
+
 let sample xs ys = 
   map (fun x -> (x, head ys)) xs
 
-let rec jump f s =
+let rec jump f s = 
   let cont s = match f (head s) with
   | None -> jump f s
   | Some s' -> s'
   in
   head s @: (cont |>> (tail s))
 
-(* TODO: probably a very wrong implementation *)
 let interleave : ('a -> 'a -> 'a) -> 'a signal -> 'a signal -> 'a signal =
   fun f xs ys ->
     (* Produce a value whenever either input signal advances.
@@ -82,7 +86,7 @@ let interleave : ('a -> 'a -> 'a) -> 'a signal -> 'a signal -> 'a signal =
       in
       current @: (cont |>> sync (tail xs) (tail ys))
     in
-    build (head xs) xs ys
+    build (f (head xs) (head ys)) xs ys
 
 let filter_map p s = mkSig (trig (None @: mapD p s))
 

@@ -28,8 +28,8 @@ let _paper_example =
   if debug then
    console_output (map (fun n -> "tick: " ^ string_of_int n) nats_prim);
   let show_nat = triggerD (fun _ n -> n) show_sig (nats_prim) in
-  console_outputD (mapD string_of_int show_nat);
-  console_outputD (mapD (fun s -> "echo: " ^ s) port_input);
+  port_send_outputD Unix.inet_addr_loopback 9000 (mapD string_of_int show_nat);
+  console_outputD (mapD (fun s -> "Number is: " ^ s) port_input);
   set_quit quit_sig;
   start_event_loop ();
   every_second_stop ()

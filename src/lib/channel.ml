@@ -14,6 +14,7 @@ let console_input =
         try
           while true do
             let line = read_line () in
+            (* print_endline ("console input: " ^ line); *)
             push line
           done
         with End_of_file -> ()) () |> ignore

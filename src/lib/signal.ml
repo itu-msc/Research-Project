@@ -15,14 +15,14 @@ let init_signal k v =
 let rec map f s = f (head s) @: (map f |>> tail s)
 let mapD f s = map f |>> s
 
-let rec map2 f xs ys = 
+let rec map2 f xs ys =
   let cont = function
     | Fst xs' -> map2 f xs' ys
     | Snd ys' -> map2 f xs  ys'
     | Both (xs',ys') -> map2 f xs' ys'
   in f (head xs) (head ys) @: (cont |>> sync (tail xs) (tail ys))
 
-let rec switch s d = 
+let rec switch s d =
   let cont = function
     | Fst s' -> switch s' d
     | Snd d' -> d'
@@ -37,9 +37,9 @@ let rec zip xs ys =
   in
   (head xs, head ys) @: (cont |>> sync (tail xs) (tail ys))
 
-let rec switchS s d = 
+let rec switchS s d =
   let x, xs = head s, tail s in
-  let cont = function 
+  let cont = function
     | Fst xs' -> switchS xs' d
     | Snd f -> f x
     | Both(_,f) -> f x
@@ -47,7 +47,7 @@ let rec switchS s d =
   x @: (cont |>> sync xs d)
 
 (** repeatedly switch whenever `d` ticks *)
-let rec switchR s d = 
+let rec switchR s d =
   let d' = (fun s' x -> switchR (head s' x) (tail s') ) |>> d in
   switchS s d'
 
@@ -55,17 +55,17 @@ let pp_signal pp_a out s =
   let hd, tl = head s, tail s in
   Format.fprintf out "%a :: oe(%a)" pp_a hd pp_oe tl
 
-let rec scan f b s = 
+let rec scan f b s =
   let hd, tl = head s, tail s in
   let b' = f b hd in
   b' @: (scan f b' |>> tl)
 
 let scanD f b s = scan f b |>> s
 
-let sample xs ys = 
+let sample xs ys =
   map (fun x -> (x, head ys)) xs
 
-let rec jump f s = 
+let rec jump f s =
   let cont s = match f (head s) with
   | None -> jump f s
   | Some s' -> s'
@@ -92,7 +92,7 @@ let filter_map p s = mkSig (trig (None @: mapD p s))
 
 let filter p = filter_map (fun x -> if p x then Some x else None)
 
-let triggerD (f: 'a -> 'b -> 'c) (s1 : 'a signal oe) (s2 : 'b signal) : 'c signal oe = 
+let triggerD (f: 'a -> 'b -> 'c) (s1 : 'a signal oe) (s2 : 'b signal) : 'c signal oe =
   (fun s1' -> map (fun (a,b) -> f a b) (sample s1' s2)) |>> s1
 
 (* TODO: Not thread safe, this can cause race conditions.
@@ -124,6 +124,7 @@ let clock_signal interval =
   let signal = init_signal chan (Unix.gettimeofday ()) in
   (signal, stop)
 
+(* TODO: Make the output methods return a callback that can clean up the output signal from the list *)
 let output_signals = ref []
 
 let console_output (s : string signal) : unit =
@@ -132,10 +133,36 @@ let console_output (s : string signal) : unit =
 let console_outputD (s : string signal oe) : unit =
   output_signals := switch (const ()) (mapD print_endline s) :: !output_signals
 
-let set_quit (s : 'a signal oe) : unit = 
+let set_quit (s : 'a signal oe) : unit =
   output_signals := switch (const ()) (mapD (fun _ -> exit 0) s) :: !output_signals
 
-let start_event_loop () : unit = 
+let start_event_loop () : unit =
   while true do
     Thread.delay 0.05 (* adjust as needed; smaller = more responsive, larger = less CPU *)
   done
+
+(* use Unix.inet_addr_loopback for localhost *)
+let port_send_outputD address port (s : string signal oe) : unit =
+  let connect () =
+    let sock = Unix.socket Unix.PF_INET Unix.SOCK_STREAM 0 in
+    Unix.connect sock (Unix.ADDR_INET (address, port));
+    Unix.out_channel_of_descr sock
+  in
+  let out_chan = ref (Some (connect ())) in
+  let send v =
+    match !out_chan with
+    | None ->
+      ()
+    | Some ch ->
+      try
+        output_string ch (v ^ "\n");
+        (* print_endline ("sent to port " ^ string_of_int port ^ ": " ^ v); *)
+        flush ch;
+        ()
+      with exn ->
+        prerr_endline ("port_send_output error: " ^ Printexc.to_string exn);
+        (try close_out ch with _ -> ());
+        out_chan := None;
+        ()
+  in
+  output_signals := switch (const ()) (mapD send s) :: !output_signals

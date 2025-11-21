@@ -29,5 +29,6 @@ val clock_channel : float -> float channel * (unit -> unit) (* returns channel a
 
 val console_output : string signal -> unit
 val console_outputD: string signal oe -> unit
+val port_send_outputD : Unix.inet_addr -> int -> string signal oe -> unit
 val set_quit : 'a signal oe -> unit
 val start_event_loop : unit -> unit

@@ -8,39 +8,21 @@ To help programmers avoid introducing space leaks (\todo{and other problems}) pr
 With this definiton of signals it is possible to define a map function $map : \square (a \rightarrow b) \rightarrow \text{Sig }a \rightarrow \text{Sig }b$. Observe, the type $\square (a \rightarrow b)$ is crucial here, as it disallows the function from capturing references to old values which would otherwise cause space leaks.
 %Jeg prøver at skabe et eksempel for vores claim "However, having several modal types comes at a cost of making the type system more restrictive and complex. Which makes it less practical for real-world applications."
 This leads directly the main downside of modal types, namely the added complexity and extra restrictions imposed. Consider $mult2 : \text{Sig }a \rightarrow \text{Sig }a$, a function that multiplies values of a given signal by two: \[mult2 \; xs = map \; (box \;(\lambda x. x * 2)) \; xs\]
-Observe, that the type system requires additional work from the programmar and computation in the form of a $box$ operation in order to fit the stable modality. 
-
-\todo{Should certainly also mention the async modal types of Async Rattus?}\cite{bahr_asynchronous_2023}
-
-\todo{Mention how it works \textcircled{$\forall$}, and \textcircled{$\exists$}?}
+Observe, that the type system requires additional work from the programmar and computation in the form of a $box$ operation in order to fit the stable modality.
 
 \section{Rizzo}
-Rizzo(\todo{cite rizzo}) is a FRP that simplifies the type system while preserving the safety guarantees. It accomplishes this by keeping the asynchronous modality, delayed computations with individual clocks, and changed signal semantics. With the new semantics, signals can instead be thought of as mutable references: $\textbf{type} \text{ Sig } a = \text{ref } (a \times \bigcirc (\text{Sig } a))$. Signal are a mutable references to a pairs of $(u,v)$ with current value $u$ (the head) and tail $v$, a delayed computation used to compute $(u',v')$ for the next time step. \todo{what's the significance(?)}
+Rizzo(\todo{cite rizzo}) is a FRP language that simplifies the type system while still preserving the safety guarantees. It achieves this by changing the semantics of signals. With the new semantics signals are mutable references: $\textbf{type} \text{ Sig } a = \text{ref } (a \times \bigcirc (\text{Sig } a))$. Meaning that the type of a signal is a mutable reference to a pair of $(u,v)$ with current value $u$ (the head) and tail $v$, a delayed computation used to update the reference in the next time step. Importantly, users of Rizzo do not update this reference themselves, instead the reference is updated by evaluating the tail $v$ and the how-to is precisely defined in the \textit{reactive semantics} \ref{background}.
 
-\todo{This enables Rizzo to do cool stuff that would otherwise not work:}
-\[ sample \; xs \; ys = (\lambda x. (x, head \; ys)) \; \triangleright \; xs \]
+These mutable references allow Rizzo to forego the need for the $\square$ (stable) modality. This means it is possible to more naturally define $map : (a \rightarrow b) \rightarrow \text{Sig }a \rightarrow \text{Sig }b$. Additionally, it also becomes impossible for Rizzo programs to hold references to the same signal from different time steps, allowing redefining $mult2 \; xs = map \; (\lambda x. x + head \; xs) \; xs$.
+
+%Er der mere at sige om Rizzo? Hvorfor er Rizzo interessant?
 
 \section{Contributions}
 This project/paper demonstrates the possibility of implementing Rizzo as an embedded language by making library implementation \todo{in Ocaml?}.
 
-% \section{Motivation}\label{motivation}
 
-% % something about why this is important and why we chose this topic
-
-% \subsubsection{Research question(s)}\label{research-questions}
-
-% %% some research questions we want to answer with this project
-% \begin{enumerate}
-%   \item How do we condense knowledge of CPU architecture and its influence on
-%   performance in such a way that a software development student at the level of
-%   a bachelor's degree can understand it?
-%   \item How do we coherently present this knowledge while abstracting
-%   unnecessary details?
-%   \item Can we utilize simple code examples and performance benchmarks to convey
-%   the information?
-% \end{enumerate}
-
-%\subsubsection{Methodology}\label{methodology}
-
-% something about how we will do this project
-
+% Related literature
+% - Andre muligheder, andre løsninger
+% - Kunne være flere af hans papers, Async rattus?
+% - Tidligere års compiler implementationer?
+%

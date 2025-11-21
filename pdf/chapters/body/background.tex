@@ -7,15 +7,27 @@
 Rizzo is implemented in \texttt{Ocaml}, because it has weak references, generalized algebraic data types (GADTs) and a strong type system. We could potentially have better performance if we chose a language with reference counting, but Ocaml is a good trade-off between performance and expressiveness.
 We have implemented Rizzo as a library, so we could draw a line between the core implementation and the user space. The intention with making this distinction is \texttt{if users follow our APIs}, then they should not be able to shoot themselves in the foot. If they don't they could potentially break the guarantees Rizzo provides, by introducing side effects. As an Ocaml library we cant guarantee that users will not introduce side effects, so we have to trust that they will follow the APIs.
 
-\subsection{The \laterA{} type}
+\subsection{Channels}
+\todo{Make sure that we have explained what clocks and ticks are before this.}
+Channels are input sources to Rizzo programs, and can be considered to be  associated with a clock. Each tick of the channel's clock represents an input event on the channel.
 
+\todo{associate this with a diagram of some kind that shows the flow of data from channels -to- signals -to- output signals.}
+
+
+\subsection{The \laterA{} type}
+The \laterA{} (later for all) type is used to represent values that will be available at the second time step, if the first time step is the creation of the type.
 
 % \laterE for asynchronous delays and \laterA for a delay on the global clock
 
 \subsection{The \laterE{} type}
+The \laterE{} (later there exists) type is used to represent values that will be available at a later time step. The reason for this to be different from \laterA{} is that the time step is not known statically, and can vary depending on the input events. For example if a signal with a filter is used, the output signal will only have values at the time steps where the input signal has values that pass the filter.
 
-\subsection{Channels}
 \subsection{Signals}
+Signals are the core concept in Rizzo, and represent time-varying values. Signals can be constructed from channels, or from other signals using signal combinators. 
+Signals are implemented as a linked list of cells, where each cell contains a value and a weak reference to the next cell. This allows us to have multiple references to the same signal without creating strong reference cycles, which would prevent garbage collection.
+Signals can be thought of as conditional infinite lists, where the head of the list is None if there is no value at the current time step, and Some(value) if there is a value. 
+For a reader unfamiliar with FRP, the signals can be considered a pipes where values flow through the network and ends up at output signals.
+
 %the type and how to construct these
 % You cannot have a headless signal 
 \subsection{The heap}

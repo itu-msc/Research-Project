@@ -11,6 +11,7 @@
 \usepackage{amsfonts}
 \usepackage{amssymb}
 \usepackage{amsmath}
+\usepackage{xspace}
 
 \graphicspath{{images/}}
 
@@ -62,6 +63,15 @@
 
 \definecolor{mytorq}{rgb}{.18,.83,.78}
 \newcommand{\todo}[1]{\textcolor{mytorq}{TODO: #1}}
+
+% \newcommand{\laterA}{\textcircled{$\forall$}}
+% \newcommand{\laterE}{\textcircled{$\exists$}}
+% \newcommand{\laterA}{\large \textcircled{\small \ensuremath{\forall}}}
+% \newcommand{\laterE}{\large \textcircled{\small \ensuremath{\exists}}}
+
+\newcommand{\laterA}{\textcircled{\raisebox{-0.3ex}{\ensuremath{\forall}}}\xspace}
+\newcommand{\laterE}{\textcircled{\raisebox{-0.3ex}{\ensuremath{\exists}}}\xspace}
+
 
 \addbibresource{references.bib}
 

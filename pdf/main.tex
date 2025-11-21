@@ -11,7 +11,7 @@
 \usepackage{amsfonts}
 \usepackage{amssymb}
 \usepackage{amsmath}
-\usepackage{xspace}
+% \usepackage{xspace}
 
 \graphicspath{{images/}}
 
@@ -64,9 +64,14 @@
 \definecolor{mytorq}{rgb}{.18,.83,.78}
 \newcommand{\todo}[1]{\textcolor{mytorq}{TODO: #1}}
 
-\newcommand{\laterA}{\textcircled{\raisebox{-0.3ex}{\ensuremath{\forall}}}\xspace}
-\newcommand{\laterE}{\textcircled{\raisebox{-0.3ex}{\ensuremath{\exists}}}\xspace}
+\newcommand{\laterA}{\textcircled{\raisebox{-0.3ex}{\ensuremath{\forall}}}}
+\newcommand{\laterE}{\textcircled{\raisebox{-0.3ex}{\ensuremath{\exists}}}}
 
+\pdfstringdefDisableCommands{%
+  \def\laterA{∀}%
+  \def\laterE{∃}%
+  % \let\xspace\relax
+}
 
 \addbibresource{references.bib}
 

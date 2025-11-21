@@ -138,7 +138,7 @@ let set_quit (s : 'a signal oe) : unit =
 
 let start_event_loop () : unit =
   while true do
-    Thread.delay 0.05 (* adjust as needed; smaller = more responsive, larger = less CPU *)
+    Thread.delay 1.0 (* adjust as needed; smaller = more responsive, larger = less CPU *)
   done
 
 (* use Unix.inet_addr_loopback for localhost *)

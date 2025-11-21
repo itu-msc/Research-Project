@@ -1,21 +1,24 @@
 Reactive programs are long-lived programs that continously receive input from and produce output to its environment. Functional Reactive Programming\cite{ElliottHudak97:Fran} (FRP) is a high level declarative programming paradigm for building reactive programs. Examples of such programs include servers, games and GUIs. 
 
-At the core of FRP abstractions is the \textit{signal} (also known as \textit{behaviours}\cite{ElliottHudak97:Fran}) which models the interaction with the environment. Signals are streams of time-dependent values that may arrive later and using functional programming they can be combined, manipulated, and consumed. However, incorrectly using signals may lead to space leaks in long-running programs\cite{gebser_asynchronous_2023}. \todo{How?!} \todo{Should we go into the details of these problems? And how \textit{causality, productivity, no-space leaks}?}
+At the core of FRP abstractions is the \textit{signal} (also known as \textit{behaviours}\cite{ElliottHudak97:Fran}) which models the interaction with the environment. Signals are streams of time-dependent values that may arrive later. Signals can be manipulated, combined, and consumed using the techniques of regular functional programming. However, incorrectly using signals may lead to space leaks in long-running programs\cite{gebser_asynchronous_2023}. \todo{How?!} \todo{Should we go into the details of these problems? And how \textit{causality, productivity, no-space leaks}?}
 
 \section{Modal Types}
-To help programmers avoid introducing space leaks (\todo{and other problems}) previous work introduces \textit{modal types}\cite{gebser_asynchronous_2023} into type system such that a well-typed program is guaranteed to be free of space leaks (\todo{and casual + productive}). There are two main modal types: The later modality $\bigcirc A$ describes the promise of a value of type $A$ becoming available later and the stable modality $\square A$ describes a time-independent value of type $A$ that is available at any time. With these modal types the type of a signal can be safely defined as: 
+To help programmers avoid introducing space leaks (\todo{and other problems}) previous work introduces \textit{modal types}\cite{gebser_asynchronous_2023}. These are introduced as primitive types in order to guarantee that well-typed program are free of space leaks (\todo{and casual + productive}). There are two main modal types: The later modality $\bigcirc A$ which describes the promise of a value of type $A$ becoming available later and the stable modality $\square A$ which describes a time-independent value of type $A$ that is available at any time. Using these modal types we can safely define the signal type as: 
 \[\textbf{type} \text{ Sig } a = a :: \bigcirc (\text{Sig } a)\] 
-With this definiton of a signal it is possible to carefully define a map function $map : \square (a \rightarrow b) \rightarrow \text{Sig }a \rightarrow \text{Sig }b$. Observe, the type $\square (a \rightarrow b)$ is crucial here, as it disallows the function from capturing references to old values which would otherwise cause space leaks.
+With this definiton of signals it is possible to define a map function $map : \square (a \rightarrow b) \rightarrow \text{Sig }a \rightarrow \text{Sig }b$. Observe, the type $\square (a \rightarrow b)$ is crucial here, as it disallows the function from capturing references to old values which would otherwise cause space leaks.
 %Jeg prøver at skabe et eksempel for vores claim "However, having several modal types comes at a cost of making the type system more restrictive and complex. Which makes it less practical for real-world applications."
 This leads directly the main downside of modal types, namely the added complexity and extra restrictions imposed. Consider $mult2 : \text{Sig }a \rightarrow \text{Sig }a$, a function that multiplies values of a given signal by two: \[mult2 \; xs = map \; (box \;(\lambda x. x * 2)) \; xs\]
-Observe, that the type system requires additional work from the programmar and computation in the form of a $box$ operation in order to fit the stable modality required of $map$.
+Observe, that the type system requires additional work from the programmar and computation in the form of a $box$ operation in order to fit the stable modality. 
 
 \todo{Should certainly also mention the async modal types of Async Rattus?}\cite{bahr_asynchronous_2023}
 
-\section{Rizzo}
-Rizzo(\todo{cite rizzo}) is a FRP that simplifies the type system while preserving the safety guarantees. It accomplishes this by keeping the asynchronous modality, delayed computations with individual clocks and changed signal semantics. Signals are changed to be mutable references to data as such $\textbf{type} \text{ Sig } a = \text{ref } (a \times \bigcirc (\text{Sig } a))$. Meaning, that a signal is a mutable reference to a pair of $(u,v)$ of the current value $u$ (the head) and a delayed computated $v$ (the tail) used to compute the pair of the next time step.
-
 \todo{Mention how it works \textcircled{$\forall$}, and \textcircled{$\exists$}?}
+
+\section{Rizzo}
+Rizzo(\todo{cite rizzo}) is a FRP that simplifies the type system while preserving the safety guarantees. It accomplishes this by keeping the asynchronous modality, delayed computations with individual clocks, and changed signal semantics. With the new semantics, signals can instead be thought of as mutable references: $\textbf{type} \text{ Sig } a = \text{ref } (a \times \bigcirc (\text{Sig } a))$. Signal are a mutable references to a pairs of $(u,v)$ with current value $u$ (the head) and tail $v$, a delayed computation used to compute $(u',v')$ for the next time step. \todo{what's the significance(?)}
+
+\todo{This enables Rizzo to do cool stuff that would otherwise not work:}
+\[ sample \; xs \; ys = (\lambda x. (x, head \; ys)) \; \triangleright \; xs \]
 
 \section{Contributions}
 This project/paper demonstrates the possibility of implementing Rizzo as an embedded language by making library implementation \todo{in Ocaml?}.

@@ -1,4 +1,6 @@
 (executable
  (public_name Rizzo)
  (name main)
- (libraries Rizzo unix threads)) ; lwt lwt.unix
+ (libraries Rizzo unix threads))
+
+; lwt lwt.unix

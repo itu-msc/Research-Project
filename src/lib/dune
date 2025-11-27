@@ -2,7 +2,7 @@
 
 (library
  (name rizzo)
- (public_name Rizzo)
+ (public_name rizzo)
  (libraries unix threads))
 
 ; lwt lwt.unix

@@ -12,9 +12,12 @@
 Rizzo is implemented in \texttt{Ocaml}, because it has weak references, generalized algebraic data types (GADTs) and a strong type system. We could potentially have better performance if we chose a language with reference counting, but Ocaml is a good trade-off between performance and expressiveness.
 We have implemented Rizzo as a library, so we could draw a line between the core implementation and the user space. The intention with making this distinction is \texttt{if users follow our APIs}, then they should not be able to shoot themselves in the foot. If they don't they could potentially break the guarantees Rizzo provides, by introducing side effects. As an Ocaml library we cant guarantee that users will not introduce side effects, so we have to trust that they will follow the APIs.
 
+\todo{add stuff about space/time leaks}
+
 \subsection{Channels}
 \todo{Make sure that we have explained what clocks and ticks are before this.}
 Channels are input sources to Rizzo programs, and can be considered to be  associated with a clock. Each tick of the channel's clock represents an input event on the channel.
+\todo{There is only one clock}
 
 \todo{associate this with a diagram of some kind that shows the flow of data from channels -to- signals -to- output signals.}
 
@@ -48,6 +51,3 @@ For a reader unfamiliar with FRP, the signals can be considered a pipes where va
 % \clearpage
 
 % \subsection{A simpler processor model}\label{processor-model}
-
-
-

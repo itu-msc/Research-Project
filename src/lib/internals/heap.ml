@@ -115,7 +115,7 @@ let print_heap () =
     | None -> ()
     | Some nn when nn.id = dummy_id ->
       if nn == heap.cursor
-        then  Printf.printf "(|) "
+        then Printf.printf "(|) "
         else Printf.printf "| ";
       aux nn.next
     | Some nn -> 
@@ -137,7 +137,8 @@ let print_heap () =
   Printf.printf "\n";
   if !collected_nodes <> [] then
     Printf.printf "Collected nodes: %s\n" 
-      (String.concat ", " (List.map string_of_int !collected_nodes))
+      (String.concat ", " (List.map string_of_int !collected_nodes));
+  flush stdout
 
 (* does channel and later have to be the same type here? *)
 let rec ticked : type a . 'b channel -> a later -> bool =
@@ -153,7 +154,6 @@ let rec ticked : type a . 'b channel -> a later -> bool =
     | Sync (u1, u2) ->
       ticked k u1 || ticked k u2
     | Trig s ->
-      (* TODO: should we still check the signal is in heap? *)
       let data = signal_get_data s in
       data.updated && Option.is_some data.head
     | Tail s ->
@@ -204,7 +204,6 @@ let incr_cursor () =
   | Some next -> heap.cursor <- next
 
 let step_cursor : 'a channel -> 'a -> unit = fun k v ->
-  (* TODO: double-check if this is here we should delete :) *)
   match node_get_data heap.cursor with
   | None -> delete heap.cursor; incr_cursor ()
   | Some cursor_data -> 
@@ -214,11 +213,6 @@ let step_cursor : 'a channel -> 'a -> unit = fun k v ->
       incr_cursor ()
     else
       let v' = signal_get_data (advance k v2 v) in
-      (* TODO: Figure out why this is necessary. 
-      Else we believe this helps keep the heap small without calling the garbage collector all the time *)
-      let _ = match find v'.id with 
-      | None -> failwith ("Heap.step_cursor: advanced signal not found in heap for id " ^ string_of_int v'.id)
-      | Some n -> delete n in
       update heap.cursor v'.head v'.tail;
       cursor_data.updated <- true;
       incr_cursor ()
@@ -231,4 +225,5 @@ let step k v : unit =
   in 
   reset_cursor ();
   inner ();
-  Mutex.unlock mutex
+  Gc.full_major ();
+  Mutex.unlock mutex;

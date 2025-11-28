@@ -1,22 +1,22 @@
-type 'a oa = unit -> 'a
+type 'a delayOnce = unit -> 'a
 
 type ('a, 'b) sync =
   | Fst of 'a
   | Snd of 'b
   | Both of 'a * 'b
 
-let delay (a: unit -> 'a) : 'a oa = a
-let adv : 'a oa -> 'a = fun d -> d ()
+let delay (a: unit -> 'a) : 'a delayOnce = a
+let adv : 'a delayOnce -> 'a = fun d -> d ()
 
 type 'a channel = Index of int
 let channel_id (Index id) = id
-let new_channel : unit -> 'a channel= 
+let new_channel : unit -> 'a channel = 
   let next = ref 0 in
   fun () -> (let c = !next in next := !next + 1; Index c)
 
 type _ later =
   | Never
-  | App : ('a -> 'b) oa * 'a later -> 'b later   (* this is the O>*)
+  | App : ('a -> 'b) delayOnce * 'a later -> 'b later   (* this is the O>*)
   | Sync : 'a later * 'b later -> ('a, 'b) sync later
   | Wait : 'a channel -> 'a later
   | Trig : 'a option signal -> 'a later
@@ -43,7 +43,7 @@ let tail = fun s -> Tail s
 let fa f x = app (delay (fun () -> f)) x
 let (|>>) = fa
 
-let ostar (f: ('a -> 'b) oa) (x: 'a oa) : 'b oa = delay (fun () -> (adv f (adv x)))
+let ostar (f: ('a -> 'b) delayOnce) (x: 'a delayOnce) : 'b delayOnce = delay (fun () -> (adv f (adv x)))
 
 let rec pp_later_helper : type a. Format.formatter -> a later -> unit= 
   fun out -> function 

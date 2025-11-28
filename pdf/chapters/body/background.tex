@@ -18,14 +18,8 @@ let console_signal = Rizzo.Signal.from_channel console_channel
 
 \subsection{Outputs}
 
-
-
-
-\section{FRP in Rizzo}\label{frp_in_rizzo}
-%advance, step, advance semantics.
-
 %Concepts, types, 
-\section{Implementing Rizzo}
+\section{Implementing Rizzo} \label{implementing_rizzo}
 
 Rizzo is implemented in \texttt{Ocaml}, because it has weak references, generalized algebraic data types (GADTs) and a strong type system. We could potentially have better performance if we chose a language with reference counting, but Ocaml is a good trade-off between performance and expressiveness.
 We have implemented Rizzo as a library, so we could draw a line between the core implementation and the user space. The intention with making this distinction is \texttt{if users follow our APIs}, then they should not be able to shoot themselves in the foot. If they don't they could potentially break the guarantees Rizzo provides, by introducing side effects. As an Ocaml library we cant guarantee that users will not introduce side effects, so we have to trust that they will follow the APIs.
@@ -54,17 +48,6 @@ Signals are implemented as a linked list of cells, where each cell contains a va
 Signals can be thought of as conditional infinite lists, where the head of the list is None if there is no value at the current time step, and Some(value) if there is a value. 
 For a reader unfamiliar with FRP, the signals can be considered a pipes where values flow through the network and ends up at output signals.
 
-%the type and how to construct these
-% You cannot have a headless signal 
-\subsection{The heap}
-%Conceptually, how the heap should work
-
-\section{Rizzo Core private methods}
-%The core, whatever "glues" the concepts together, making it a language
-
-\subsection{Heap implementation}
-%Stuff like step, advance, 
-%Concrete implementation, why a linked list? Why weak reference etc. Also the "alloc" to create signals.
 
 % \clearpage
 

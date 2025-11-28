@@ -1,0 +1,16 @@
+\section{Rizzo Core private methods}
+%The core, whatever "glues" the concepts together, making it a language
+
+% You cannot have a headless signal 
+%the type and how to construct these
+\subsection{The heap}
+Rizzo \todo{cite} stores signals in a specialized heap. Conceptually the signal heap is a sequence of mappings from an identifier to head, tail, and a flag (which will become important later) as such $id \mapsto v\langle U \rangle w$. 
+
+
+As an embedded language the implemention makes use of both the regular OCaml heap and a specialized custom heap for storing signals. Conceptually the signal heap is a sequence of mappings from  
+%Conceptually, how the heap should work
+%Concrete implementation, why a linked list? Why weak reference etc. Also the "alloc" to create signals.
+
+\subsection{Rizzo semantics}
+%Stuff like step, advance, 
+The operational semantics of Rizzo can be considered in two parts: evaluation and reactive semantics. Since our Rizzo implementation is embedded in OCaml most of the evaluation semantic were already given, requiring only the definitions of the primitive types described in section \ref{implementing_rizzo}. Therefore, the primary interest of this section will be the reactive semantics which define how signals and later values \textit{react} to input.

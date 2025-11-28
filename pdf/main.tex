@@ -21,10 +21,10 @@
 \definecolor{xmlcomments}{rgb}{0.5,0.5,0.5}
 \definecolor{types}{rgb}{0.17,0.57,0.68}
 \definecolor{backcolour}{RGB}{248,246,240}
-\definecolor{locals}{RGB}{127,190,228}
+\definecolor{methods}{RGB}{255,193,7}
 
 \lstdefinestyle{full}{
-  language=[Sharp]C,
+  language=[Objective]Caml,
   captionpos=b,
   numbers=left,
   backgroundcolor=\color{backcolour},
@@ -35,7 +35,11 @@
   showstringspaces=false,
   breakatwhitespace=true,
   commentstyle=\color{greencomments},
-  emph={int,char,double,float,unsigned,void,bool,string},
+  emph={
+    int,char,double,float,unsigned,void,bool,string,
+    unit,list,option,some,none,
+    Types,Rizzo,Channel,Signal,Later,delayOnce,
+  },
   emphstyle={\color{types}},
   otherkeywords={
     partial,var,value,get,set,
@@ -43,10 +47,10 @@
     % N, sum, result, arr
   },
   morekeywords=[2]{1,2,3,4,5,6,7,8,9,0},
-  % morekeywords=[3]{N, i, j, k, sum, result, arr},
+  % morekeywords=[3]{scan,filter},
   keywordstyle=\color{bluekeywords},
   keywordstyle=[2]{\color{greencomments}},
-  keywordstyle=[3]{\color{locals}},
+  keywordstyle=[3]{\color{methods}},
   stringstyle=\color{redstrings},
   basicstyle=\ttfamily\small,
 }

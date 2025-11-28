@@ -3,6 +3,24 @@
 %Input channels : Clock signals, console signal, 
 %Output "channels":
 
+\subsection{Inputs}
+Input sources in Rizzo are called channels. There can theoretically be implemented an input channel for any kind of input source, but currently Rizzo only has a console, clock and port input implementation.
+
+To use one of the input channels, the user requests to get one of the channels from Rizzo, and then uses the channel to create signals. For example, bellow we show how a console input channel can be used to create a signal that represents the input from the console.
+\begin{verbatim}
+let console_channel = Rizzo.Channel.console_input () in
+let console_signal = Rizzo.Signal.from_channel console_channel
+\end{verbatim}
+
+\subsection{Signal operators}
+
+
+
+\subsection{Outputs}
+
+
+
+
 \section{FRP in Rizzo}\label{frp_in_rizzo}
 %advance, step, advance semantics.
 

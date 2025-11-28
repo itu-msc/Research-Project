@@ -68,7 +68,7 @@ $client.Close() *)
 
 
 
-(* Example usage of the 'oe' type *)
+(* Example usage of the 'later' type *)
 
 (* 
 

@@ -53,7 +53,7 @@ let rec switchR s d =
 
 let pp_signal pp_a out s =
   let hd, tl = head s, tail s in
-  Format.fprintf out "%a :: oe(%a)" pp_a hd pp_oe tl
+  Format.fprintf out "%a :: later(%a)" pp_a hd pp_later tl
 
 let rec scan f b s =
   let hd, tl = head s, tail s in
@@ -92,7 +92,7 @@ let filter_map p s = mkSig (trig (None @: mapD p s))
 
 let filter p = filter_map (fun x -> if p x then Some x else None)
 
-let triggerD (f: 'a -> 'b -> 'c) (s1 : 'a signal oe) (s2 : 'b signal) : 'c signal oe =
+let triggerD (f: 'a -> 'b -> 'c) (s1 : 'a signal later) (s2 : 'b signal) : 'c signal later =
   (fun s1' -> map (fun (a,b) -> f a b) (sample s1' s2)) |>> s1
 
 (* TODO: Not thread safe, this can cause race conditions.
@@ -130,10 +130,10 @@ let output_signals = ref []
 let console_output (s : string signal) : unit =
   output_signals := map print_endline s :: !output_signals
 
-let console_outputD (s : string signal oe) : unit =
+let console_outputD (s : string signal later) : unit =
   output_signals := switch (const ()) (mapD print_endline s) :: !output_signals
 
-let set_quit (s : 'a signal oe) : unit =
+let set_quit (s : 'a signal later) : unit =
   output_signals := switch (const ()) (mapD (fun _ -> exit 0) s) :: !output_signals
 
 let start_event_loop () : unit =
@@ -142,7 +142,7 @@ let start_event_loop () : unit =
   done
 
 (* use Unix.inet_addr_loopback for localhost *)
-let port_send_outputD address port (s : string signal oe) : unit =
+let port_send_outputD address port (s : string signal later) : unit =
   let connect () =
     let sock = Unix.socket Unix.PF_INET Unix.SOCK_STREAM 0 in
     Unix.connect sock (Unix.ADDR_INET (address, port));

@@ -1,7 +1,7 @@
 {
     "scripts": {
         "build": "cd src; dune build",
-        "dev": "cd src; dune exec rizzo",
+        "dev": "cd src; dune exec Rizzo",
         "test": "cd src; dune runtest"
     }
 }

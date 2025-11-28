@@ -57,7 +57,7 @@ let get_now_tail () =
   | None -> failwith "Heap invariant broken: tail is None"
   | Some t -> t
 
-let alloc : type a. a -> a signal oe -> a signal_data =
+let alloc : type a. a -> a signal later -> a signal_data =
   fun s t -> 
     let cursor = heap.cursor in
     let signal_id = heap.next_id in
@@ -92,7 +92,7 @@ let delete (node: node) =
       ()
   | _ -> failwith "Heap invariant broken: node to delete has None prev or next"
 
-let update : type a. node -> a -> a signal oe -> unit =
+let update : type a. node -> a -> a signal later -> unit =
   fun n s t -> 
     match node_get_data n with
     | None -> () (* gc'ed *)
@@ -139,8 +139,8 @@ let print_heap () =
     Printf.printf "Collected nodes: %s\n" 
       (String.concat ", " (List.map string_of_int !collected_nodes))
 
-(* does channel and oe have to be the same type here? *)
-let rec ticked : type a . 'b channel -> a oe -> bool =
+(* does channel and later have to be the same type here? *)
+let rec ticked : type a . 'b channel -> a later -> bool =
   fun k v ->
     match v with
     | Never -> false
@@ -160,7 +160,7 @@ let rec ticked : type a . 'b channel -> a oe -> bool =
       let data = signal_get_data s in
       ticked k data.tail
 
-let rec advance : type a . 'b channel -> a oe -> 'b -> a =
+let rec advance : type a . 'b channel -> a later -> 'b -> a =
   fun k u w ->
     match u with 
     | Wait k' -> 
@@ -195,7 +195,7 @@ let rec advance : type a . 'b channel -> a oe -> 'b -> a =
         (match signal_data.head with
         | None -> failwith "Heap.adv: triggered signal has None value" (* TODO: is this really an error? *)
         | Some v -> v)
-    | Never -> failwith "Heap.adv: cannot advance Never oe"
+    | Never -> failwith "Heap.adv: cannot advance Never later"
 
 
 let incr_cursor () = 

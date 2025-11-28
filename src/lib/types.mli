@@ -1,7 +1,7 @@
 open Internals
 
 type 'a oa = 'a MainTypes.oa
-type 'a oe = 'a MainTypes.oe
+type 'a later = 'a MainTypes.later
 type 'a channel = 'a MainTypes.channel
 type 'a signal = 'a MainTypes.signal
 
@@ -15,14 +15,14 @@ val new_channel : unit -> 'a channel
 val delay : (unit -> 'a) -> 'a oa
 val adv : 'a oa -> 'a
 
-val never : 'a oe
-val app : ('a -> 'b) oa -> 'a oe -> 'b oe
-val sync: 'a oe -> 'b oe -> ('a, 'b) sync oe
-val wait : 'a channel -> 'a oe
-val trig : 'a option signal -> 'a oe
-val tail : 'a signal -> 'a signal oe
+val never : 'a later
+val app : ('a -> 'b) oa -> 'a later -> 'b later
+val sync: 'a later -> 'b later -> ('a, 'b) sync later
+val wait : 'a channel -> 'a later
+val trig : 'a option signal -> 'a later
+val tail : 'a signal -> 'a signal later
 val ostar : ('a -> 'b) oa -> 'a oa -> 'b oa
-val fa : ('a -> 'b) -> 'a oe -> 'b oe
-val (|>>) : ('a -> 'b) -> 'a oe -> 'b oe
+val fa : ('a -> 'b) -> 'a later -> 'b later
+val (|>>) : ('a -> 'b) -> 'a later -> 'b later
 
-val pp_oe : Format.formatter -> 'a oe -> unit
+val pp_later : Format.formatter -> 'a later -> unit

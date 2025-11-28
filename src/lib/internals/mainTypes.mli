@@ -1,12 +1,12 @@
 (*
   This .mli file is here to hide the implementation details of various types...
   Unfortunately, it seems we must include a .mli file for our main types too, 
-  otherwise the compiler isn't able to assert the types 'Types.oe' and 'Internals.MainTypes.oe'
+  otherwise the compiler isn't able to assert the types 'Types.later' and 'Internals.MainTypes.later'
   are the same.
   But we can expose more "low-level" functions here that let you retrieve IDs of channels/signals,
   which are necessary for the internal library implementation but should not be exposed to the user by default.
 
-  I have left the constructors of the oe type exposed because they are necessary for pattern matching (which is a nice QoL) 
+  I have left the constructors of the later type exposed because they are necessary for pattern matching (which is a nice QoL) 
   and if a user decides to use the App constructor instead of the app function, nothing bad will happen.
 *)
 
@@ -18,18 +18,18 @@ type ('a, 'b) sync =
   | Snd of 'b
   | Both of 'a * 'b
 
-type _ oe = private
+type _ later = private
   | Never
-  | App : ('a -> 'b) oa * 'a oe -> 'b oe
-  | Sync : 'a oe * 'b oe -> ('a, 'b) sync oe
-  | Wait : 'a channel -> 'a oe
-  | Trig : 'a option signal -> 'a oe
-  | Tail : 'a signal -> 'a signal oe
+  | App : ('a -> 'b) oa * 'a later -> 'b later
+  | Sync : 'a later * 'b later -> ('a, 'b) sync later
+  | Wait : 'a channel -> 'a later
+  | Trig : 'a option signal -> 'a later
+  | Tail : 'a signal -> 'a signal later
 and 'a signal  
 and 'a signal_data = { 
   id: int; 
   mutable head: 'a; 
-  mutable tail: 'a signal oe; 
+  mutable tail: 'a signal later; 
   mutable updated: bool
 }
 
@@ -43,14 +43,14 @@ val signal_get_data : 'a signal -> 'a signal_data
 val delay : (unit -> 'a) -> 'a oa
 val adv : 'a oa -> 'a
 
-val never : 'a oe
-val app : ('a -> 'b) oa -> 'a oe -> 'b oe
-val sync: 'a oe -> 'b oe -> ('a, 'b) sync oe
-val wait : 'a channel -> 'a oe
-val trig : 'a option signal -> 'a oe
-val tail : 'a signal -> 'a signal oe
+val never : 'a later
+val app : ('a -> 'b) oa -> 'a later -> 'b later
+val sync: 'a later -> 'b later -> ('a, 'b) sync later
+val wait : 'a channel -> 'a later
+val trig : 'a option signal -> 'a later
+val tail : 'a signal -> 'a signal later
 val ostar : ('a -> 'b) oa -> 'a oa -> 'b oa
-val fa : ('a -> 'b) -> 'a oe -> 'b oe
-val (|>>) : ('a -> 'b) -> 'a oe -> 'b oe
+val fa : ('a -> 'b) -> 'a later -> 'b later
+val (|>>) : ('a -> 'b) -> 'a later -> 'b later
 
-val pp_oe : Format.formatter -> 'a oe -> unit
+val pp_later : Format.formatter -> 'a later -> unit

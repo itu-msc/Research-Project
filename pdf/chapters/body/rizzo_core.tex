@@ -1,16 +1,31 @@
 \section{Rizzo Core private methods}
 %The core, whatever "glues" the concepts together, making it a language
+To give executable meaning to these constructions (\todo{signal, oe, oa}), Rizzo defines operational semantics. The operational semantics of Rizzo are split into two parts. The first part is the evaluation semantics which describe how terms are computed. The second part, the reactive semantics, describe how signals and later values \textit{react} to input over time. Since our implementation of Rizzo is an embedded language, the evaluation semantics are provided by OCaml. Therefore, this section will primarily focus on the reactive semantics and the other necessary aspects that are needed to make Rizzo \textit{reactive}.
 
 % You cannot have a headless signal 
 %the type and how to construct these
 \subsection{The heap}
-Rizzo \todo{cite} stores signals in a specialized heap. Conceptually the signal heap is a sequence of mappings from an identifier to head, tail, and a flag (which will become important later) as such $id \mapsto v\langle U \rangle w$. 
-
-
-As an embedded language the implemention makes use of both the regular OCaml heap and a specialized custom heap for storing signals. Conceptually the signal heap is a sequence of mappings from  
 %Conceptually, how the heap should work
+In Rizzo signals are stored in a specalized heap. This heap is divided in two: Namely, the `now' heap $\eta_n$ and the `earlier' heap $\eta_e$. We say that signals in the `now' are considered \textit{up-to-date} and signals in the `earlier' heap are old, that is they belong to the past and must be \textit{advanced} before they can be used. \todo{explain signal allocation}. Conceptually, a heap is a sequence of mappings $id \mapsto v\langle U \rangle w$, which map an identifier to the data of a signal. This data contains the head $v$ and tail $w$ of a signal alongside a flag that indicates whether the signal has been updated in the current time step. This flag plays an important for the reactive semantics described in section \ref{rizzo_semantics}.
+%Does this also include channels?
+
+In our library, the `now' and `earlier' heaps are implemented as a single doubly-linked list. To achieve the two-part heap, we keep a to the last element of the `now' heap, called the `cursor', which marks the boundary. There choice of data structure is based on the requirements of the reactive semantics (section \ref{rizzo_semantics}): Firstly, whenever a new signal is allocated it should be put in the `now' part of the heap and hence we need fast insertion. Secondly, we need to be able to move data between the `now' and `earlier' heap efficiently, because it happens for every tick in time. Thirdly, we must be able to efficiently remove siganls once they are no longer needed. The linked list offers easy instertion and delation at arbitrary positions and the `cursor' reference makes it cheap to move data from the `earlier' heap to the `now' heap by simpling changing a reference.
+
+However, as an embedded language we also inherit the OCaml heap which is garbage colletced. \todo{weak references}
 %Concrete implementation, why a linked list? Why weak reference etc. Also the "alloc" to create signals.
 
-\subsection{Rizzo semantics}
+
+\subsection{Rizzo semantics}\label{rizzo_semantics}
 %Stuff like step, advance, 
-The operational semantics of Rizzo can be considered in two parts: evaluation and reactive semantics. Since our Rizzo implementation is embedded in OCaml most of the evaluation semantic were already given, requiring only the definitions of the primitive types described in section \ref{implementing_rizzo}. Therefore, the primary interest of this section will be the reactive semantics which define how signals and later values \textit{react} to input.
+
+When an input is received on any channel time will step forward, creating a so-called tick and begining the process of bringing all signals into this new time step. This process is described by the \textit{step} semantics and involves looking through the entire heap, updating \textit{ticked} signals and moving those that did not tick. 
+
+More precisly, once the update process starts the cursor is reset to the top of the heap, everything is part of the `earlier' heap. Meaning, we always update the topmost element of the `earlier' heap. In order to determine whether a signal has ticked or not, the function $ticked : \text{channel } B \rightarrow \text{later } A \rightarrow bool$ iscalled. Any signal that has not ticked is simply moved into the new time step by incrementing the heap cursor. Ticked signals are updated by \textit{advancing} them, $advance : \text{channel } B \rightarrow \text{later } A \rightarrow B \rightarrow A$. This creates a new signal and the old signal is then updated to match.
+
+%Note, this creates the problem of suddenly, you have two signals with the same tail. Therefore, we must explicitly call the garbage collector. Reference counting would save us.
+\todo{Problem 1: this creates signals with duplicate tails. This is bad for side effects which not a problem since the language makes no guarantees for side effects. However, it also means our implementation of $console\_output$ breaks \dots therefore we must call Gc}
+
+%Mention that we are using GADTs and therefore we must in our implementation use "polymorphic recursion". In OCaml we must explicitly state the universally quantified type varaible:
+% https://stackoverflow.com/a/69144537
+% https://ocaml.org/manual/5.4/polymorphism.html#s:polymorphic-recursion
+\todo{Problem 2: polymorphic recursion as a result of GADTs. }

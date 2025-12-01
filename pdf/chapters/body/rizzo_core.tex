@@ -14,6 +14,7 @@ In our library, the `now' and `earlier' heaps are implemented as a single doubly
 However, as an embedded language we also inherit the OCaml heap which is garbage colletced. \todo{weak references}
 %Concrete implementation, why a linked list? Why weak reference etc. Also the "alloc" to create signals.
 
+\todo{access to the heap is proteceted by a mutex to avoid entering illegal states where the heap cursor is in multiple places\dots (should we mention happens-before?)}
 
 \subsection{Rizzo semantics}\label{rizzo_semantics}
 %Stuff like step, advance, 
@@ -21,11 +22,20 @@ However, as an embedded language we also inherit the OCaml heap which is garbage
 When an input is received on any channel time will step forward, creating a so-called tick and begining the process of bringing all signals into this new time step. This process is described by the \textit{step} semantics and involves looking through the entire heap, updating \textit{ticked} signals and moving those that did not tick. 
 
 More precisly, once the update process starts the cursor is reset to the top of the heap, everything is part of the `earlier' heap. Meaning, we always update the topmost element of the `earlier' heap. In order to determine whether a signal has ticked or not, the function $ticked : \text{channel } B \rightarrow \text{later } A \rightarrow bool$ iscalled. Any signal that has not ticked is simply moved into the new time step by incrementing the heap cursor. Ticked signals are updated by \textit{advancing} them, $advance : \text{channel } B \rightarrow \text{later } A \rightarrow B \rightarrow A$. This creates a new signal and the old signal is then updated to match.
+\todo{explain advancing to new time step}
 
-%Note, this creates the problem of suddenly, you have two signals with the same tail. Therefore, we must explicitly call the garbage collector. Reference counting would save us.
+%Note, this creates the problem of suddenly, you have two signals with the same tail. ~~ Therefore, we must explicitly call the garbage collector. Reference counting would save us. ~~ I suggest moving this to a chapter of its own?
 \todo{Problem 1: this creates signals with duplicate tails. This is bad for side effects which not a problem since the language makes no guarantees for side effects. However, it also means our implementation of $console\_output$ breaks \dots therefore we must call Gc}
 
 %Mention that we are using GADTs and therefore we must in our implementation use "polymorphic recursion". In OCaml we must explicitly state the universally quantified type varaible:
 % https://stackoverflow.com/a/69144537
 % https://ocaml.org/manual/5.4/polymorphism.html#s:polymorphic-recursion
 \todo{Problem 2: polymorphic recursion as a result of GADTs. }
+
+\subsection{Input, output, and event loop} \label{rizzo_io}
+\todo{How are channels handled $\Rightarrow$ we spawn separate threadsa for console, clock, and port}
+
+\todo{Output, when users registers a signal to output then we create a new signal that has the side effect of printing. To avoid GC eating our output signals, we have to store these in a global variable. AND because we are sort of abusing the heap ourselves, we have to explicitly call GC in heap (to avoid duplicating prints each tick). Could be fixed be 1 handling these signals different, maybe manually checking if they ticked at the end of a step or 2 updating signals in place to avoid the duplicating tails}
+
+\todo{The event loop. When a user is finished defining their signals, they \textit{start} the event loop. This blocks the main thread, so the program doesn't preemptively terminate. Also means that after this point all work is done entirely on input threads, which may cause `clock signal' (etc.) to go out of sync. Additionally, the threads (for input) are all started eagerly, meaning as soon they are invoked. So, while running the `setup', all the code before `start\_event\_loop', it may be that input is produced on channels before all signals have been declared. Meaning, for this brief period of execution it is possible that input is dropped, i.e. not given to some signals because they just do not exist in the heap yet!}
+

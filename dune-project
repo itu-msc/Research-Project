@@ -25,7 +25,7 @@
   (ocaml
    (>= 5.3))
   (dune
-   (= 3.20)))
+   (>= 3.20)))
  (tags
   ("FRP"
    "space leaks"

@@ -28,26 +28,14 @@ start_event_loop ()
 %Stuff like step, advance, 
 In Rizzo time `ticks' whenever input is produced on any channel, we say the program enters a new \textit{time step}. This begins a process, described by the \textit{step semantics}, which brings all signals into this new time step by either updating or moving them. At a high level, this process first moves everything to the `earlier' heap. Then it goes through the entire heap, checking for each signals whether it has been affected by the new `tick' and and if so, then we say the signal has `ticked'. If a signal has ticked as a result of new input then it must be updated. To update a signal, its tail is advanced, producing a new head and tail as described by the \textit{advance semantics}. If a signal has not ticked, then it is simply moved into the new time step unchanged.
 
-The implementation follows naturally from the above description. To update the heap, we first set the heap cursor to be the first element, then we loop over the heap calling the function $ticked : \text{channel } B \rightarrow \text{later } A \rightarrow bool$ to determine if a particular signal has ticked given the channel that produced the time step. Any signal that has not ticked is is moved by just moving the cursor forward (\todo{Also, we set the flag to not updated}). Whereas any signal that has ticked is advanced by calling $advance : \text{channel } B \rightarrow \text{later } A \rightarrow B \rightarrow A$ on the channel, the produced value and the signal which results in a signal, which may or may not be a newly allocated (\todo{for example, tail doesn't make a new one}). Then the data of the original signal is updated by mutating the underlying data record, which can be seen in listing \ref{rizzo_step}. (\todo{Explain how we model signals.})
-
-\begin{lstlisting}[caption={Code for updating the heap}, label={rizzo_step}]
-let step_cursor : 'a channel -> 'a -> unit = fun k v ->
-  match node_get_data heap.cursor with
-  | None -> delete heap.cursor; incr_cursor ()
-  | Some cursor_data -> 
-    let {tail = v2; _} : 'a signal_data = cursor_data in
-    if not (ticked k v2) then 
-      let () = cursor_data.updated <- false in
-      incr_cursor ()
-    else
-      let v' = signal_get_data (advance k v2 v) in
-      update heap.cursor v'.head v'.tail;
-      cursor_data.updated <- true;
-      incr_cursor ()
-\end{lstlisting}
+The implementation follows naturally from the above description. To update the heap, we first set the heap cursor to be the first element, then we loop over the heap calling the function $ticked : \text{channel } B \rightarrow \text{later } A \rightarrow bool$ to determine if a particular signal has ticked given the channel that produced the time step. Any signal that has not ticked is is moved by just moving the cursor forward (\todo{Also, we set the flag to not updated}). Whereas any signal that has ticked is advanced by calling $advance : \text{channel } B \rightarrow \text{later } A \rightarrow B \rightarrow A$ on the channel, the produced value and the signal which results in a signal, which may be newly allocated. Then the data of the original signal is updated by mutating the underlying data record. (\todo{Make sure we explained how signals are modelled before this.})
 
 %Note, this creates the problem of suddenly, you have two signals with the same tail. ~~ Therefore, we must explicitly call the garbage collector. Reference counting would save us. ~~ I suggest moving this to a chapter of its own?
-\todo{Problem 1: this creates signals with duplicate tails. This is bad for side effects which not a problem since the language makes no guarantees for side effects. Exactly why breaks the \ref{heap_side_effect} However, it also means our implementation of $console\_output$ breaks \dots therefore we must call Gc}
+While this approach is simple, it also means that after a signal is advanced, there will exist (at least) two identical signals in the heap. 
+%Problem 1: this creates signals with duplicate tails. This is bad for side effects which not a problem since the language makes no guarantees for side effects. Exactly why breaks the \ref{heap_side_effect} However, it also means our implementation of $console\_output$ breaks \dots therefore we must call Gc
+Combined with the problem of garbage collection (see listing  \ref{heap_side_effect}), the heap will grow \todo{incredibly (doubling each tick)} fast if left unattended. This spells doom for both performance and any side effects present in delayed computations. An ever-growing heap that makes the program come to a crawl because the is unacceptable. Similarly, despite the language providing no guarantees for side effects \todo{cite Rizzo}, we cannot rule those out entirely either, because side effects are used in the implementation of outputs (section \ref{rizzo_io}). Luckily, a single function call to trigger garbage collection cycle when fixes both these issues (to some extend). 
+
+\todo{DISCUSSION $\Rightarrow$ Reference counting also would've fixed these issues.}
 
 %Mention that we are using GADTs and therefore we must in our implementation use "polymorphic recursion". In OCaml we must explicitly state the universally quantified type varaible:
 % https://stackoverflow.com/a/69144537

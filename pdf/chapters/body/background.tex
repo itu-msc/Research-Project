@@ -51,27 +51,8 @@ port_send_outputL Unix.inet_addr_loopback 9000 console_out_signal;
 
 To get it to run and block the main thread, we call \lstinline{start_event_loop ();} at the end of the program.
 
-Setting everything together, we get the following complete Rizzo program:
-\begin{lstlisting}
-open Rizzo.Types
-open Rizzo.Signal
-open Rizzo.Channel
-let () =
-    let console_channel = console_input () in
-    let port_channel = port_input 9000 in
+An example interaction with the program so far could look like this:
 
-    let console_out_signal = mkSig_of_channel console_channel in
-    let port_out_signal = mkSig_of_channel port_channel in
-
-    console_outputL (mapL (fun s -> "From console: " ^ s) console_out_signal);
-    console_outputL (mapL (fun s -> "From port: " ^ s) port_out_signal);
-
-    port_send_outputL Unix.inet_addr_loopback 9000
-    console_out_signal;
-    start_event_loop ();
-\end{lstlisting}
-
-Where an example interaction with the program could look like this:
 \begin{verbatim}
 Hello Rizzo
 From console: Hello Rizzo
@@ -80,6 +61,23 @@ Hello again
 From console: Hello again
 From port: Hello again
 \end{verbatim}
+\footref{appendix:simple_program}
+
+Lets make it a bit more interesting by adding some more complex behaviour. We will add a clock signal that ticks every second, and a conditional that when input is received from the console, only prints if the current seconds that have passed are an even number.
+
+We can create a clock signal using the \texttt{clock\_signal} function. The \texttt{clock\_signal} function takes a float as input, which represents the interval in seconds between each tick of the clock.
+
+\begin{lstlisting}
+let every_second, every_second_stop = clock_signal 1.0 in
+\end{lstlisting}
+
+% We can then create a signal that counts the number of ticks that have passed using the \texttt{scan} function. The \texttt{scan} function takes a function, an initial value, and a signal as input. \texttt{scan} then produces a new signal by applying the function to the last value and the current value of the input signal.
+
+% \begin{lstlisting}
+% let nats init = scan (fun n _ -> n + 1) init every_second in
+% \end{lstlisting}
+
+To implement the conditional behaviour, we can use the \texttt{filter} function to create a signal that only passes through values when input is received from the console. 
 
 \todo{Finish this :)}
 

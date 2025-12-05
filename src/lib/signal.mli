@@ -2,7 +2,7 @@ open Types
 
 (** Creates a fresh signal given a head and a tail in the form of a delayed computation. Similar to cons ([::]) on lists.
     
-    Example: {[ let my_int_signal = 0 @: (filter_map int_of_string_opt console) ]}
+    Example: {[ let my_int_signal = 0 @: (filter_mapL int_of_string_opt console) ]}
 *)
 val (@:) : 'a -> 'a signal later -> 'a signal
 
@@ -56,7 +56,7 @@ val head : 'a signal -> 'a
         let every_second, every_second_stop = Rizzo.Channel.clock_signal 1.0 in
         (* counts the number of seconds since application startup *)
         let count_second = scan (fun n _ -> n + 1) 0 every_second in
-        let numbers_from_console : int signal later = filter_map int_of_string_opt console in
+        let numbers_from_console : int signal later = filter_mapL int_of_string_opt console in
         let switched = switch count_second numbers_from_console in ...
     ]}
     Switch will act as [count_second] until the program receives a valid number through the [console].
@@ -70,11 +70,14 @@ val switchS     : 'a signal -> ('a -> 'a signal) later -> 'a signal
 val switchR     : 'a signal -> (('a -> 'a signal) signal) later -> 'a signal
 val jump        : ('a -> 'a signal option) -> 'a signal -> 'a signal
 val sample      : 'a signal -> 'b signal -> ('a * 'b) signal
+val sampleL     : 'a signal -> 'b signal later -> ('a * 'b) signal later
 val scan        : ('b -> 'a -> 'b) -> 'b -> 'a signal -> 'b signal
 val scanL       : ('a -> 'b -> 'a) -> 'a -> 'b signal later -> 'a signal later
 val interleave  : ('a -> 'a -> 'a) -> 'a signal -> 'a signal -> 'a signal
-val filter      : ('a -> bool) -> 'a signal later -> 'a signal later
-val filter_map  : ('a -> 'b option) -> 'a signal later -> 'b signal later
+val filter      : ('a -> bool) -> 'a signal -> 'a signal later
+val filterL     : ('a -> bool) -> 'a signal later -> 'a signal later
+val filter_map  : ('a -> 'b option) -> 'a signal -> 'b signal later
+val filter_mapL : ('a -> 'b option) -> 'a signal later -> 'b signal later
 val triggerL    : ('a -> 'b -> 'c) -> 'a signal later -> 'b signal -> 'c signal later
 val map2        : ('a -> 'b -> 'c) -> 'a signal -> 'b signal -> 'c signal
 

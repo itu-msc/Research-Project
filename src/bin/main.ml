@@ -10,11 +10,11 @@ let _paper_example =
   let nats init = scan (fun n _ -> n + 1) init every_second in
 
   let console  = console_input () |> wait |> mkSig in
-  let quit_sig = filter ((=) "quit") console in
-  let show_sig = filter ((=) "show") console in
-  let neg_sig  = filter ((=) "negate") console in
-  (* let echo_sig = filter ((=) "echo") console in *)
-  let num_sig  = filter_map read_int console in
+  let quit_sig = filterL ((=) "quit") console in
+  let show_sig = filterL ((=) "show") console in
+  let neg_sig  = filterL ((=) "negate") console in
+  (* let echo_sig = filterL ((=) "echo") console in *)
+  let num_sig  = filter_mapL read_int console in
   let interleaved =
     interleave
       Fun.compose
@@ -34,6 +34,34 @@ let _paper_example =
   start_event_loop ();
   every_second_stop ()
       
+
+let _switch_example =
+  let inputChan = console_input () in
+  let inputSig = mkSig_of_channel inputChan in
+  let clockSig, stop = clock_signal 10.0 in
+  let sampled = sampleL clockSig inputSig in
+  console_outputL (mapL (fun (f, s) -> "You last wrote: " ^ s ^ "\nat time" ^ string_of_float f) sampled);
+  start_event_loop ();
+  stop ()
+
+let _scan_example =
+  let inputChan = console_input () in
+  let inputSig = mkSig_of_channel inputChan in
+  let countSig = scanL (fun c _ -> c + 1 ) 0 inputSig in
+  console_outputL (mapL (Format.asprintf "You have written something '%a' times" Format.pp_print_int) countSig);
+  start_event_loop ()
+
+(* let _scanfilterL_example =
+  let inputChan = console_input () in
+  let inputSig = mkSig_of_channel inputChan in
+  let clockSig, stop = clock_signal 1.0 in
+  let evenSig = scan (fun c f -> if (Int.logand (int_of_float f) 1) == 0 then true else false ) false clockSig in
+  let zipped = zip evenSig inputSig in
+  let filterLedSig = filter (fun b -> b) (evenSig) in
+  let sampled = 
+  console_output (map (Format.asprintf "You have written something '%a' times" Format.pp_print_int) countSig);
+  start_event_loop ();
+  stop () *)
 
 (* let _minimal_example =
   let console_channel = console_input () in
@@ -63,7 +91,7 @@ $client.Close() *)
   let inputSig = init_signal inputChan "" in
   let countSig = scan (fun c _ -> c + 1) 0 inputSig in
   let countSeconds = scan (fun c _ -> c + 1) 0 one_sec in
-  let thirdSec = 0 @: filter (fun c -> c mod 3 = 0) (tail countSeconds) in
+  let thirdSec = 0 @: filterL (fun c -> c mod 3 = 0) (tail countSeconds) in
   console_output (map (Format.asprintf "You have written something '%a' times after this many secconds" Format.pp_print_int) countSig);
   console_output (map (fun s ->
     Rizzo.Internals.Heap.print_heap ();

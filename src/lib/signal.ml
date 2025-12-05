@@ -65,6 +65,8 @@ let scanL f b s = scan f b |>> s
 let sample xs ys =
   map (fun x -> (x, head ys)) xs
 
+let sampleL xs ys = sample xs |>> ys
+
 let rec jump f s =
   let cont s = match f (head s) with
   | None -> jump f s
@@ -88,12 +90,18 @@ let interleave : ('a -> 'a -> 'a) -> 'a signal -> 'a signal -> 'a signal =
     in
     build (f (head xs) (head ys)) xs ys
 
-let filter_map p s = mkSig (trig (None @: mapL p s))
+let filter_map p s = mkSig (trig (p (head s) @: mapL p (tail s)))
+let filter_mapL p s = mkSig (trig (None @: mapL p s))
 
 let filter p = filter_map (fun x -> if p x then Some x else None)
 
+let filterL p = filter_mapL (fun x -> if p x then Some x else None)
+
+let trigger f s1 s2 =
+  map (fun (a,b) -> f a b) (sample s1 s2)
+
 let triggerL (f: 'a -> 'b -> 'c) (s1 : 'a signal later) (s2 : 'b signal) : 'c signal later =
-  (fun s1' -> map (fun (a,b) -> f a b) (sample s1' s2)) |>> s1
+  (fun s1' -> trigger f s1' s2) |>> s1
 
 (* TODO: Not thread safe, this can cause race conditions.
   When channels can be other things than int then change this to use float. *)

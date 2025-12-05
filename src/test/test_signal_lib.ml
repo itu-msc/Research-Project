@@ -1,6 +1,6 @@
 open Rizzo.Signal
 open Rizzo.Types
-open Rizzo.Channel
+open Rizzo.Internals
 
 (* just see if the switch works, if it correctly changes the 'clock' at run time *)
 let () = 
@@ -14,13 +14,13 @@ let () =
   
   let rec inner cnt = 
     if cnt = 5 then 
-      let () = step slow_chan 1050 in
+      let () = Heap.step slow_chan 1050 in
       let () = Format.print_string "Stepped on the slow channel:\n" in
       Format.printf "[%a] switched: %a\n" Format.pp_print_int cnt pp_int_signal switched
     else 
       let () = Format.printf "[%a] switched: %a\n" Format.pp_print_int cnt pp_int_signal switched in
       let () = Format.printf "[%a] numbers_and_double: %a\n\n" Format.pp_print_int cnt pp_int_pair_signal numbers_and_double in
-      let () = step c1 cnt in
+      let () = Heap.step c1 cnt in
       inner (cnt + 1) 
   in
   inner 0
@@ -29,7 +29,7 @@ let () =
   let clock_signal, stop = clock_signal 1.0 in
   let chan = new_channel () in
   let other_signal = init_signal chan 0 in
-  step chan 100;
+  Heap.step chan 100;
 
   print_endline ("Head of clock_signale signal: " ^ string_of_float (head clock_signal));
   (* print_endline ("Tail of clockSignal: " ^ string_of_float (tail clock_signal)); *)

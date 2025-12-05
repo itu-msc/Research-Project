@@ -1,5 +1,3 @@
-let step = Internals.Heap.step
-
 let getInput () =
   let chan = Types.new_channel () in
   (chan, fun v -> Internals.Heap.step chan v)

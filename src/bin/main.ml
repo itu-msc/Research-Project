@@ -27,13 +27,23 @@ let _paper_example =
   let nats_prim = nats' 0 in
   if debug then
    console_output (map (fun n -> "tick: " ^ string_of_int n) nats_prim);
-  let show_nat = triggerD (fun _ n -> n) show_sig (nats_prim) in
-  port_send_outputD Unix.inet_addr_loopback 9000 (mapD string_of_int show_nat);
-  console_outputD (mapD (fun s -> "Number is: " ^ s) port_input);
+  let show_nat = triggerL (fun _ n -> n) show_sig (nats_prim) in
+  port_send_outputL Unix.inet_addr_loopback 9000 (mapL string_of_int show_nat);
+  console_outputL (mapL (fun s -> "Number is: " ^ s) port_input);
   set_quit quit_sig;
   start_event_loop ();
   every_second_stop ()
       
+
+(* let _minimal_example =
+  let console_channel = console_input () in
+  let port_channel = port_input 9000 in
+  let console_out_signal = mkSig_of_channel console_channel in
+  let port_out_signal = mkSig_of_channel port_channel in
+  console_outputL (mapL (fun s -> "From console: " ^ s) console_out_signal);
+  console_outputL (mapL (fun s -> "From port: " ^ s) port_out_signal);
+  port_send_outputL Unix.inet_addr_loopback 9000 console_out_signal;
+  start_event_loop (); *)
 
 (* 
 PowerShell to write to port 9000:

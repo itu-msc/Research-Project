@@ -24,7 +24,7 @@ val map : ('a -> 'b) -> 'a signal -> 'b signal
 
 
 (** Maps a function over a delayed signal, producing a new delayed signal. *)
-val mapD : ('a -> 'b) -> 'a signal later -> 'b signal later
+val mapL : ('a -> 'b) -> 'a signal later -> 'b signal later
 
 
 (** Creates a delayed signal from any delayed computation. 
@@ -71,11 +71,11 @@ val switchR     : 'a signal -> (('a -> 'a signal) signal) later -> 'a signal
 val jump        : ('a -> 'a signal option) -> 'a signal -> 'a signal
 val sample      : 'a signal -> 'b signal -> ('a * 'b) signal
 val scan        : ('b -> 'a -> 'b) -> 'b -> 'a signal -> 'b signal
-val scanD       : ('a -> 'b -> 'a) -> 'a -> 'b signal later -> 'a signal later
+val scanL       : ('a -> 'b -> 'a) -> 'a -> 'b signal later -> 'a signal later
 val interleave  : ('a -> 'a -> 'a) -> 'a signal -> 'a signal -> 'a signal
 val filter      : ('a -> bool) -> 'a signal later -> 'a signal later
 val filter_map  : ('a -> 'b option) -> 'a signal later -> 'b signal later
-val triggerD    : ('a -> 'b -> 'c) -> 'a signal later -> 'b signal -> 'c signal later
+val triggerL    : ('a -> 'b -> 'c) -> 'a signal later -> 'b signal -> 'c signal later
 val map2        : ('a -> 'b -> 'c) -> 'a signal -> 'b signal -> 'c signal
 
 val pp_signal   : (Format.formatter -> 'a -> unit) -> Format.formatter -> 'a signal -> unit
@@ -91,11 +91,11 @@ val console_output : string signal -> unit
 
 
 (** Outputs the eventual value of later signal to stdout on each tick *)
-val console_outputD: string signal later -> unit
+val console_outputL: string signal later -> unit
 
 
 (** Outputs the eventual value of later signal to the given port at address *)
-val port_send_outputD : Unix.inet_addr -> int -> string signal later -> unit
+val port_send_outputL : Unix.inet_addr -> int -> string signal later -> unit
 
 
 (** Quits the program on first tick *)

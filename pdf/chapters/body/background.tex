@@ -32,21 +32,21 @@ let port_out_signal = mkSig_of_channel port_channel in
 If we simply wanted to output the input signals directly to the console, we only need to use the \texttt{console\_outputD} function from the \texttt{Channel} module to output the signals. \texttt{console\_outputD} takes a later signal as input, where the D indicates that the signal is of a later type.
 
 \begin{lstlisting}
-console_outputD (console_out_signal);
-console_outputD (port_out_signal);
+console_outputL (console_out_signal);
+console_outputL (port_out_signal);
 \end{lstlisting}
 
-However, to demonstrate the use of signal combinators in Rizzo, we will modify the output signals to prepend a string to the input values before outputting them to the console. We can use the \texttt{mapD} function from the \texttt{Signal} module to achieve this. \texttt{mapD} takes a function and a later signal as input, and applies the function to each value of the signal.
+However, to demonstrate the use of signal combinators in Rizzo, we will modify the output signals to prepend a string to the input values before outputting them to the console. We can use the \texttt{mapL} function from the \texttt{Signal} module to achieve this. \texttt{mapL} takes a function and a later signal as input, and applies the function to each value of the signal.
 
 \begin{lstlisting}
-console_outputD (mapD (fun s -> "From console: " ^ s) console_out_signal);
-console_outputD (mapD (fun s -> "From port: " ^ s) port_out_signal);
+console_outputL (mapL (fun s -> "From console: " ^ s) console_out_signal);
+console_outputL (mapL (fun s -> "From port: " ^ s) port_out_signal);
 \end{lstlisting}
 
 Given we have not made a client that writes to the port, the port output will not produce any output, so lets fix that by taking the input from the console and writing it to the port as well. We can use the \texttt{port\_outputD} function from the \texttt{Channel} module to output to the port.
 
 \begin{lstlisting}
-port_send_outputD Unix.inet_addr_loopback 9000 console_out_signal;
+port_send_outputL Unix.inet_addr_loopback 9000 console_out_signal;
 \end{lstlisting}
 
 To get it to run and block the main thread, we call \lstinline{start_event_loop ();} at the end of the program.
@@ -63,10 +63,10 @@ let () =
     let console_out_signal = mkSig_of_channel console_channel in
     let port_out_signal = mkSig_of_channel port_channel in
 
-    console_outputD (mapD (fun s -> "From console: " ^ s) console_out_signal);
-    console_outputD (mapD (fun s -> "From port: " ^ s) port_out_signal);
+    console_outputL (mapL (fun s -> "From console: " ^ s) console_out_signal);
+    console_outputL (mapL (fun s -> "From port: " ^ s) port_out_signal);
 
-    port_send_outputD Unix.inet_addr_loopback 9000
+    port_send_outputL Unix.inet_addr_loopback 9000
     console_out_signal;
     start_event_loop ();
 \end{lstlisting}

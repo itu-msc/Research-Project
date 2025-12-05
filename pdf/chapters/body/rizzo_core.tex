@@ -17,7 +17,7 @@ However, since we are creating an embedded language, it is necessary to work wit
 let console = mkSig_of_channel (console_input ()) in
 let id_with_side_effect = 
     fun x -> print_endline "[side-effect]"; x in
-ignore ("initial" @: mapD id_with_side_effect console);
+ignore ("initial" @: mapL id_with_side_effect console);
 start_event_loop ()
 \end{lstlisting}
 \todo{Is it necessary to say more about signal allocation?}

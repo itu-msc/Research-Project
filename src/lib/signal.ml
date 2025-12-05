@@ -13,7 +13,7 @@ let init_signal k v =
   v @: mkSig_of_channel k
 
 let rec map f s = f (head s) @: (map f |>> tail s)
-let mapD f s = map f |>> s
+let mapL f s = map f |>> s
 
 let rec map2 f xs ys =
   let cont = function
@@ -60,7 +60,7 @@ let rec scan f b s =
   let b' = f b hd in
   b' @: (scan f b' |>> tl)
 
-let scanD f b s = scan f b |>> s
+let scanL f b s = scan f b |>> s
 
 let sample xs ys =
   map (fun x -> (x, head ys)) xs
@@ -88,11 +88,11 @@ let interleave : ('a -> 'a -> 'a) -> 'a signal -> 'a signal -> 'a signal =
     in
     build (f (head xs) (head ys)) xs ys
 
-let filter_map p s = mkSig (trig (None @: mapD p s))
+let filter_map p s = mkSig (trig (None @: mapL p s))
 
 let filter p = filter_map (fun x -> if p x then Some x else None)
 
-let triggerD (f: 'a -> 'b -> 'c) (s1 : 'a signal later) (s2 : 'b signal) : 'c signal later =
+let triggerL (f: 'a -> 'b -> 'c) (s1 : 'a signal later) (s2 : 'b signal) : 'c signal later =
   (fun s1' -> map (fun (a,b) -> f a b) (sample s1' s2)) |>> s1
 
 (* TODO: Not thread safe, this can cause race conditions.
@@ -130,11 +130,11 @@ let output_signals = ref []
 let console_output (s : string signal) : unit =
   output_signals := map print_endline s :: !output_signals
 
-let console_outputD (s : string signal later) : unit =
-  output_signals := switch (const ()) (mapD print_endline s) :: !output_signals
+let console_outputL (s : string signal later) : unit =
+  output_signals := switch (const ()) (mapL print_endline s) :: !output_signals
 
 let set_quit (s : 'a signal later) : unit =
-  output_signals := switch (const ()) (mapD (fun _ -> exit 0) s) :: !output_signals
+  output_signals := switch (const ()) (mapL (fun _ -> exit 0) s) :: !output_signals
 
 let start_event_loop () : unit =
   while true do
@@ -142,7 +142,7 @@ let start_event_loop () : unit =
   done
 
 (* use Unix.inet_addr_loopback for localhost *)
-let port_send_outputD address port (s : string signal later) : unit =
+let port_send_outputL address port (s : string signal later) : unit =
   let connect () =
     let sock = Unix.socket Unix.PF_INET Unix.SOCK_STREAM 0 in
     Unix.connect sock (Unix.ADDR_INET (address, port));
@@ -165,4 +165,4 @@ let port_send_outputD address port (s : string signal later) : unit =
         out_chan := None;
         ()
   in
-  output_signals := switch (const ()) (mapD send s) :: !output_signals
+  output_signals := switch (const ()) (mapL send s) :: !output_signals

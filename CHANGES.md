@@ -1,3 +1,7 @@
+# 0.2.0 - 2025-12-05
+
+- Changed signal combinators to have `*L` suffix for later signals, rather than `*D`.
+
 # 0.1.0 - 2025-11-27
 
 - Initial release of the `Rizzo` FRP library.

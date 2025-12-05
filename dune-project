@@ -7,9 +7,13 @@
 (source
  (github itu-msc/Research-Project))
 
-(authors "Authors Patrick Matthiesen and tjobi")
+(maintainers
+ "Patrick Matthiesen"
+ "tjobi")
 
-(maintainers "Maintainers Patrick Matthiesen and tjobi")
+(authors 
+  "Patrick Matthiesen"
+  "tjobi")
 
 (license MIT)
 

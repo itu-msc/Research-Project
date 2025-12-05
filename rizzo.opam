@@ -6,8 +6,8 @@ description: """
 Rizzo is a Functional Reactive Programming (FRP) library implemented in OCaml.
   It provides abstractions and tools for building reactive applications with ease and efficiency.
   Rizzo was made as one solution to the challenges with time leaks in FRP systems."""
-maintainer: ["Maintainers Patrick Matthiesen and tjobi"]
-authors: ["Authors Patrick Matthiesen and tjobi"]
+maintainer: ["Patrick Matthiesen" "tjobi"]
+authors: ["Patrick Matthiesen" "tjobi"]
 license: "MIT"
 tags: [
   "FRP"

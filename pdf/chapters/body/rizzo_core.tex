@@ -6,7 +6,7 @@ To give executable meaning to these constructions (\todo{signal, oe, oa}), Rizzo
 %the type and how to construct these
 \subsection{The heap}
 %Conceptually, how the heap should work
-In Rizzo signals are stored in a specalized heap. This heap is divided in two: Namely, the `now' heap $\eta_n$ and the `earlier' heap $\eta_e$. We say that signals in the `now' are considered \textit{up-to-date} and signals in the `earlier' heap are old, that is they belong to the past and must be \textit{advanced} before they can be used. Conceptually, a heap is a sequence of mappings $id \mapsto v\langle U \rangle w$, which map an identifier to the data of a signal. This data contains the head $v$ and tail $w$ of a signal alongside a flag that indicates whether the signal has been updated in the current time step. This flag plays an important for the reactive semantics described in section \ref{rizzo_semantics}. The heap provides a way to create fresh signals identifiers by using the function $\text{alloc} : A \rightarrow \text{later } A \rightarrow \text{Signal }A$ .
+In Rizzo signals are stored in a specialized heap. This heap is divided in two: Namely, the `now' heap $\eta_n$ and the `earlier' heap $\eta_e$. We say that signals in the `now' are considered \textit{up-to-date} and signals in the `earlier' heap are old, that is they belong to the past and must be \textit{advanced} before they can be used. Conceptually, a heap is a sequence of mappings $id \mapsto v\langle U \rangle w$, which map an identifier to the data of a signal. This data contains the head $v$ and tail $w$ of a signal alongside a flag that indicates whether the signal has been updated in the current time step. This flag plays an important for the reactive semantics described in section \ref{rizzo_semantics}. The heap provides a way to create fresh signals identifiers by using the function $\text{alloc} : A \rightarrow \text{later } A \rightarrow \text{Signal }A$ .
 %Does this also include channels?
 
 In our library, the `now' and `earlier' heaps are implemented as a single doubly-linked list. To achieve the two-part heap, we keep a pointer to the last element of the `now' heap, called the `cursor', which marks the boundary. The choice of data structure is based on the requirements of the reactive semantics (section \ref{rizzo_semantics}): Firstly, whenever a new signal is allocated it should be put in the `now' part of the heap and hence we need fast insertion. Secondly, we need to be able to move data between the `now' and `earlier' heap efficiently, because it happens for every tick in time. Thirdly, we must be able to efficiently remove siganls once they are no longer needed. The linked list offers fast instertion and delation at arbitrary positions and the `cursor' reference makes it cheap to move data from the `earlier' heap to the `now' heap by simpling changing a reference.
@@ -24,7 +24,7 @@ start_event_loop ()
 
 %Concrete implementation, why a linked list? Why weak reference etc. Also the "alloc" to create signals.
 
-\subsection{Rizzo semantics}\label{rizzo_semantics}
+\subsection{Rizzo semantics}\label{section:rizzo_semantics}
 %Stuff like step, advance, 
 In Rizzo time `ticks' whenever input is produced on any channel, we say the program enters a new \textit{time step}. This begins a process, described by the \textit{step semantics}, which brings all signals into this new time step by either updating or moving them. At a high level, this process first moves everything to the `earlier' heap. Then it goes through the entire heap, checking for each signals whether it has been affected by the new `tick' and and if so, then we say the signal has `ticked'. If a signal has ticked as a result of new input then it must be updated. To update a signal, its tail is advanced, producing a new head and tail as described by the \textit{advance semantics}. If a signal has not ticked, then it is simply moved into the new time step unchanged.
 
@@ -37,7 +37,7 @@ Combined with the problem of garbage collection (see listing  \ref{heap_side_eff
 
 \todo{DISCUSSION $\Rightarrow$ Reference counting also would've fixed these issues.}
 
-%Mention that we are using GADTs and therefore we must in our implementation use "polymorphic recursion". In OCaml we must explicitly state the universally quantified type varaible:
+%Mention that we are using GADTs and therefore we must in our implementation use "polymorphic recursion". In OCaml we must explicitly state the universally quantified type variable:
 % https://stackoverflow.com/a/69144537
 % https://ocaml.org/manual/5.4/polymorphism.html#s:polymorphic-recursion
 \todo{Problem 2: polymorphic recursion as a result of GADTs. }

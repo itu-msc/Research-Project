@@ -1,4 +1,4 @@
-\section{Rizzo Core private methods}
+\section{Rizzo Core private methods} \label{section:rizzo_core}
 %The core, whatever "glues" the concepts together, making it a language
 To give executable meaning to these constructions (\todo{signal, oe, oa}), Rizzo defines operational semantics. The operational semantics of Rizzo are split into two parts. The first part is the evaluation semantics which describe how terms are computed. The second part, the reactive semantics, describe how signals and later values \textit{react} to input over time. Since our implementation of Rizzo is an embedded language, the evaluation semantics are provided by OCaml. Therefore, this section will primarily focus on the reactive semantics and the other aspects necessary to make Rizzo \textit{reactive}.
 

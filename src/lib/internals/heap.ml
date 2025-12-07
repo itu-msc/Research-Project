@@ -217,7 +217,13 @@ let step_cursor : 'a channel -> 'a -> unit = fun k v ->
       cursor_data.updated <- true;
       incr_cursor ()
 
-let step k v : unit = 
+let registered_outputs : unit later list ref = ref []
+
+(** Any later given to this function, should NOT include [@:] signal allocation in any shape. *)
+let register_output s = 
+  registered_outputs := s :: !registered_outputs
+
+let step (type a) (k : a channel) (v : a) : unit = 
   Mutex.lock mutex;
   let rec inner : unit -> unit = fun () ->
     if Option.is_none heap.cursor.next then ()
@@ -225,5 +231,8 @@ let step k v : unit =
   in 
   reset_cursor ();
   inner ();
-  Gc.full_major ();
+  !registered_outputs
+  |> List.filter (ticked k)
+  |> List.iter (fun x -> advance k x v |> ignore) ;
+  (* Gc.full_major (); *)
   Mutex.unlock mutex;

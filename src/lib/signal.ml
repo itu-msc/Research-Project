@@ -138,17 +138,15 @@ let clock_signalL interval =
   let signal = mkSig_of_channel chan in
   (signal, stop)
 
-(* TODO: Make the output methods return a callback that can clean up the output signal from the list *)
-let output_signals = ref []
+let console_outputL (s : string signal later) : unit =
+  Internals.Heap.register_output (s |>> fun s -> print_endline (head s))
 
 let console_output (s : string signal) : unit =
-  output_signals := map print_endline s :: !output_signals
-
-let console_outputL (s : string signal later) : unit =
-  output_signals := switch (const ()) (mapL print_endline s) :: !output_signals
+  print_endline (head s); 
+  console_outputL (tail s)
 
 let set_quit (s : 'a signal later) : unit =
-  output_signals := switch (const ()) (mapL (fun _ -> exit 0) s) :: !output_signals
+  Internals.Heap.register_output (s |>> fun _ -> exit 0)
 
 let start_event_loop () : unit =
   while true do
@@ -194,4 +192,4 @@ let port_outputL address port (s : string signal later) : unit =
         out_chan := None;
         ()
   in
-  output_signals := switch (const ()) (mapL send s) :: !output_signals
+  Internals.Heap.register_output (s |>> Fun.compose send head)

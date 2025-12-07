@@ -40,10 +40,16 @@ Combined with the behaviour of garbage collector (see listing  \ref{listing:heap
 %Mention that we are using GADTs and therefore we must in our implementation use "polymorphic recursion". In OCaml we must explicitly state the universally quantified type variable:
 % https://stackoverflow.com/a/69144537
 % https://ocaml.org/manual/5.4/polymorphism.html#s:polymorphic-recursion
-The function $ advance : \text{channel } B \rightarrow \text{later } A \rightarrow B \rightarrow A $, implements the \textit{advance semantics}, which define how later values are brought into the current time step if they have ticked. Since the \texttt{later} modality is modelled as a GADT, $advance$ is polymorphically recursive since it recurse over later values whose element types change. Consider the \texttt{App} case in listing \ref{listing:rizzo_advance_code}, where the existential type $c$ introduced from GADT is different from $a$. In order for this case to type check in OCaml, we must use a locally abstract type $a$ to make the polymorphic recursion explicit.
+The function $ advance : \text{channel } B \rightarrow \text{later } A \rightarrow B \rightarrow A $ implements the \textit{advance semantics}, determining how later values are brought forward into a new time step when they tick. Since the \texttt{later} modality is modelled as a GADT, recursive calls to \texttt{advance} must be able to change the element type they operate on, which makes \texttt{advance} polymorphically recursive, rather than a regular recursive function.
+Consider, for example the \texttt{App} case in listing \ref{listing:rizzo_advance_code}. 
+The constructor $\texttt{App} : \text{delayOnce } (c \rightarrow a) \rightarrow \text{later }a \rightarrow \text{later }c$, introduces a new (existential) type $c$.
+We must first advance $x : (\text{later }c)$ in order to pass its value to $f : \text{delayOnce }(c \rightarrow a)$. 
+At the outer call \texttt{advance} has type $\text{channel } b \rightarrow \; \text{later } a \rightarrow b \rightarrow a$ but inside the branch of \texttt{App} we need to call a type $\text{channel } b \rightarrow \; \text{later } c \rightarrow b \rightarrow c$. This change in type parameter across recursive calls is exactly what requires polymorphic recursion.
+
+In OCaml, such polymorphic recursion is not inferred automatically and must be expressed using locally abstract type variables, the \textit{type a} annotation in listing \ref{listing:rizzo_advance_code}. Without this annotation the program fails type checking.
 %Do we cite ocaml GADTS? https://ocaml.org/manual/5.2/gadts-tutorial.html
 
-\begin{lstlisting}[caption={OCaml implementation of the advance semantics of Rizzo including only the pattern match for \texttt{App} (\todo{applicative action}). Existential type $c$ have been made explicit to better show need for polymorphic recursion.}, label={listing:rizzo_advance_code}]
+\begin{lstlisting}[caption={OCaml implementation of the advance semantics of Rizzo including only the case for \texttt{App}. The existential type $c$ has been made explicit to demonstrate the need for polymorphic recursion.}, label={listing:rizzo_advance_code}]
 let rec advance 
   : type a . 'b channel -> a later -> 'b -> a =
   fun k u w ->

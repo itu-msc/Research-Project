@@ -1,29 +1,78 @@
-Reactive programs are long-lived programs that continuously interact with their environments, receiving input and producing output. Examples of reactive programs include servers, games and GUIs\todo{cite?}. 
+Reactive programs are long‑lived programs that continuously interact with their environment by receiving inputs and producing outputs. Typical examples include servers, interactive games, and graphical user interfaces.
 
-Functional Reactive Programming\cite{ElliottHudak97:Fran} (FRP) is a high level programming paradigm for building reactive programs. FRP lets programmers use the familiar techniques of functional programming to implement and reason about time-flow and events in order to build reactive programs. The result is paradigm in which reactive programs are built declaratively. 
+Functional Reactive Programming (FRP) \cite{ElliottHudak97:Fran} is a high level paradigm for building reactive programs. It lets programmers use the familiar techniques of functional programming to implement and reason about time-flow and events. It lets programmers use familiar functional programming techniques to declaratively describe time-varying values and events, rather than in terms of low-level callbacks or mutable state.
 
-At the core of FRP is the abstraction of a \textit{signal} (also known as \textit{behaviours}\cite{ElliottHudak97:Fran}), which models the interaction with the environment. Signals are streams of time-dependent values, that may arrive later, and can be manipulated, combined, and consumed using regular functional programming techniques. However, the incorrect use of signals may lead to space leaks where old values of signals are kept in memory for too long\cite{bahr_asynchronous_2023}. \todo{An example?} \todo{Should we go into the details of \textit{causality, productivity}?}
+At the core of FRP is the abstraction of a \emph{signal} (also known as a \emph{behaviour} \cite{ElliottHudak97:Fran}), which models the interaction with the environment over time. Intuitively, a signal of type $\text{Sig }A$ represents a time-varying value of type $A$, that can be operated on in a purely functional way.
+
+Naively representing signals as infinite streams makes it easy to write
+programs that are \emph{causal} and \emph{productive}: each output depends
+only on the current and past inputs, and each input eventually produces an
+output. However, such representations are prone to \emph{space leaks}, where
+old signal values can be retained in memory indefinitely \cite{bahr_asynchronous_2023}.
 
 \section{Modal Types}
-To help programmers avoid introducing space leaks (\todo{and other problems}) previous work introduces \textit{modal types}\cite{gebser_asynchronous_2023}. These are introduced as primitive types in order to guarantee that well-typed program are free of space leaks (\todo{and casual + productive}). There are two main modal types: The later modality $\bigcirc A$ which describes the promise of a value of type $A$ becoming available later and the stable modality $\square A$ which describes a time-independent value of type $A$ that is available at any time. Using these modal types we can safely define the signal type as: 
-\[\textbf{type} \text{ Sig } a = a :: \bigcirc (\text{Sig } a)\] 
-With this definition of signals it is possible to define a map function $map : \square (a \rightarrow b) \rightarrow \text{Sig }a \rightarrow \text{Sig }b$. Observe, the type $\square (a \rightarrow b)$ is crucial here, as it disallows the function from capturing references to old values which would otherwise cause space leaks.
+To avoid space leaks (and to guarantee other operational properties such as causality and productivity), previous works introduces \textit{modal types}\cite{gebser_asynchronous_2023}. 
+These modalities refine the type of a value with information about \emph{when} it is available and whether it is safe to retain across time steps. 
+
+The two main modalities are the \emph{later} modality $\bigcirc A$ and the
+\emph{stable} modality $\square A$. A value of type $\bigcirc A$ is a promise
+that a value of type $A$ will become available later. A value
+of type $\square A$ is \emph{time-independent}, making it safe to retain across time steps.
+
+Using these modalities we can safely define the signal type as: 
+\[
+  \textbf{type} \text{ Sig } a = a :: \bigcirc (\text{Sig } a)
+\] 
+Here only current value is available now, while the next value is available later. 
+With this definition of signals it is possible to define a map function 
+\[
+  map : \square (a \rightarrow b) \rightarrow \text{Sig }a \rightarrow \text{Sig }b
+\] 
+Observe, the type $\square (a \rightarrow b)$ is crucial here, as it disallows the function from capturing references to old values which would otherwise cause space leaks.
 
 %Jeg prøver at skabe et eksempel for vores claim "However, having several modal types comes at a cost of making the type system more restrictive and complex. Which makes it less practical for real-world applications."
-However, this elegant solution comes at the cost of added complexity to the type checker and for users. Whenever a function like $map$ is used the type checker must ensure, through typing rules, that the provided function only uses other stable variables\cite{bahr_asynchronous_2023}. Additionally, programmers must perform a dance with the compiler to make types fit, consider as an example $mult2 : \text{Sig }a \rightarrow \text{Sig }a$, a function takes a signal to produce a new signal where the original values have been multiplied by two: \[mult2 \; xs = map \; (box \;(\lambda x.\ x * 2)) \; xs\]
-Observe in particular the use of $box$ that is required fit the stable modality of $map$.
+However, this elegant solution comes at the cost of added complexity to the type checker and for users. Whenever a function like $map$ is used, the type checker must ensure through typing rules, that the provided function only uses other stable variables\cite{bahr_asynchronous_2023}. Additionally, programmers must perform a dance with the compiler to make types fit, consider as an example $mult2 : \text{Sig }a \rightarrow \text{Sig }a$, a function takes a signal to produce a new signal where the original values have been multiplied by two: 
+\[
+  mult2 \; xs = map \; (box \;(\lambda x.\ x * 2)) \; xs
+\]
+Observe in particular the use of $box$ (the introduction form for $\square$) that is required fit the stable modality of $map$.
 
 \section{Rizzo}
-Rizzo\cite{rizzo_modal_2025} is a FRP language that simplifies the type system while still preserving the same safety guarantees (\todo{As what?}). It achieves this by changing the semantics of signals. With the new semantics signals are mutable references: $\textbf{type} \text{ Sig } a = \text{ref } (a \times \bigcirc (\text{Sig } a))$. Meaning that the type of a signal is a mutable reference to a pair of $(u,v)$ with current value $u$ (the head) and tail $v$, a delayed computation used to update the reference in the next time step. Importantly, users of Rizzo do not update this reference themselves, instead the reference is updated by evaluating the tail $v$. The process of updating signals is defined by the \textit{reactive semantics} (explained in section \ref{section:rizzo_semantics}). 
+Rizzo\cite{rizzo_modal_2025} is a FRP language that simplifies the modal type system while still guaranteeing productivity, causality, and the absence of space leaks. It achieves this by changing the semantics of signals. 
+
+With the new semantics signals are mutable references: 
+\[
+  \textbf{type} \text{ Sig } a = \text{ref } (a \times \bigcirc (\text{Sig } a))
+\]
+A value of type $\text{Sig }a$ is thus a mutable reference to a pair $(u,v)$, where $u$ is the current value (the head) and $v$ is a delayed computation (the tail) used to update the reference in the next time step. Importantly, users of Rizzo do not update this reference themselves, instead the reference is updated by evaluating the tail $v$. The process of updating signals is defined by the \textit{reactive semantics} (explained in section \ref{section:rizzo_semantics}). 
 
 The mutable references in the semantics of signals is what allows Rizzo to forego the $\square$ (stable) modality. Since signals are updated in place, it is impossible for Rizzo programs to reference the same signal from different time steps. Without the stable modality we can redefine $map : (a \rightarrow b) \rightarrow \text{Sig }a \rightarrow \text{Sig }b$ and use it to also redefine the $mult2$ function:
-\[mult2 \; xs = map \; (\lambda x. x + head \; xs) \; xs\]
-Notice, the new definition of $map$ permits a reference to $xs$ inside the lambda because $xs$ is a mutable reference and therefore does not leak space. Were it not for changed semantics this definition of $mult2$ would both leak space, by referencing the \textit{old} values of $xs$, and fail to type cehck given the previous definition of $map$. The type of the lambda would not be stable, since it references $xs : \text{Sig }A$.
+\[
+  mult2 \; xs = map \; (\lambda x. x * head \; xs) \; xs
+\]
+Notice, the new definition of $map$ permits a reference to $xs$ inside the lambda. This is safe, because $xs$ is a mutable reference and therefore does not leak space. Were it not for changed semantics, this definition of $mult2$ would both leak space, by referencing the \textit{old} values of $xs$, and fail to type check given the previous definition of $map$. The type of the lambda would not be stable, since it references $xs : \text{Sig }A$.
 
 %Er der mere at sige om Rizzo? Hvorfor er Rizzo interessant?
 
 \section{Contributions}
-In this paper we implement a library implementation of Rizzo in Ocaml in order to demonstrate the possibility of implementing Rizzo as an embedded language. We successfully implement a library (see \ref{using_rizzo} for examples) and highlighting some of the difficulties and limitations that come from embedding the language. In particular when the semantics of Rizzo clash with side effects, the memory model, etc. that can be found in Ocaml.
+\section{Contributions}
+
+In this paper we present an OCaml library that embeds the core ideas of Rizzo
+as an embedded domain‑specific language. Our contributions are:
+
+\begin{itemize}
+  \item We design and implement a small Rizzo‑style FRP library in OCaml,
+    closely following the operational semantics of \cite{rizzo_modal_2025}.
+    Section~\ref{using_rizzo} illustrates how to use this library to build
+    simple reactive programs.
+  \item We discuss the practical challenges of implementing Rizzo as an
+    embedded language, in particular the interaction between Rizzo's reactive
+    semantics and OCaml's own side effects, evaluation strategy, and memory
+    model.
+  \item We identify several limitations of the embedding (e.g. \todo{side effects, the memory model, \dots}) and
+    outline possible extensions or language support that would make Rizzo-style
+    FRP more convenient to use in a mainstream setting.
+\end{itemize}
 
 % Related literature
 % - Andre muligheder, andre løsninger

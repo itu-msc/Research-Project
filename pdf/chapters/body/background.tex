@@ -16,7 +16,7 @@ let console_channel = Channel.console_input () in
 let console_signal = Signal.from_channel console_channel
 \end{lstlisting}
 
-\subsection{Signal operators}
+\subsection{Signal combinators}
 Signals are the bread and butter of Rizzo, and Rizzo provides a number of signal combinators that can be used to manipulate signals. Some of the most notable signal combinators are \texttt{map}, \texttt{filter} and \texttt{sample}. Signal combinators come in two variants, the normal variant that works on regular signals, and the later variant that works on later signals. The later variant is denoted by appending an L to the name of the combinator.
 
 A brief overview of the signal combinators is given below:
@@ -27,7 +27,7 @@ A brief overview of the signal combinators is given below:
 \end{itemize}
 
 \subsection{Outputs}
-Rizzo provides output functions that can be used to output signals to various output sources. Currently Rizzo has output functions for console and network port outputs. Like the signal combinators they take a signal as input, and there are two variants, one for regular signals and one for later signals. Unlike the signal combinators, the output functions do not produce a new signal, but instead have the side effect of outputting the signal values to the output source.
+Rizzo provides output functions that can be used to output signals to various output sources. Currently Rizzo has output functions for console and network port outputs. Like the signal combinators there can be two variants, one for regular signals and one for later signals. Unlike the signal combinators, the output functions do not produce a new signal, but instead have the side effect of outputting the signal values to the output source.
 
 \subsection{Example program}
 
@@ -41,7 +41,7 @@ open Rizzo.Signal
 open Rizzo.Channel
 \end{lstlisting}
 
-Now that we have access to the Rizzo modules, we can start implementing our application. The application will need to read input from the console and a network port. We start by creating input channels for the console and the network port.
+Now that we have access to the Rizzo modules, we can start implementing our application. The application will need to read input from the console and a network port. We do that by creating input channels for the console and the network port.
 
 \begin{lstlisting}
 let console_channel = console_input () in
@@ -128,7 +128,9 @@ The full example program can be seen in Appendix~\ref{appendix:extended_example_
 \section{Implementing Rizzo} \label{section:implementing_rizzo}
 
 Rizzo is implemented in \texttt{Ocaml}, because it has weak references, generalized algebraic data types (GADTs) and a strong type system. We could potentially have better performance if we chose a language with reference counting, but Ocaml is a good trade-off between performance and expressiveness.
-We have implemented Rizzo as a library, so we could draw a line between the core implementation and the user space. The intention with making this distinction is \texttt{if users follow our APIs}, then they should not be able to shoot themselves in the foot. If they don't they could potentially break the guarantees Rizzo provides, by introducing side effects. As an Ocaml library we cant guarantee that users will not introduce side effects, so we have to trust that they will follow the APIs.
+We have implemented Rizzo as a library, where we have drawn a line between the core implementation and the user space. The intention with making this distinction is \texttt{if users follow our APIs}, then they will get the safety guarantees that Rizzo was designed for. If they don't, they could potentially break the guarantees Rizzo provides, by for example introducing side effects. As an Ocaml library we cant guarantee that users will not introduce side effects, so we have to trust that they will follow the APIs.
+
+Most of the implementation of Rizzo is contained in the \texttt{internals} module, which contains the core implementation of Rizzo. The \texttt{types} module contains the type definitions and type constructors used in Rizzo, and the \texttt{signal} and \texttt{channel} modules contain the signal combinators and channel implementations respectively. We have not hidden this implementation behind an abstract interface, since we want users to be able to extend Rizzo with new functionality if they want to. So input channels can for example be extended by users to support new input sources.
 
 \todo{add stuff about space/time leaks}
 
@@ -144,12 +146,32 @@ Channels produce input events at discrete time steps, and
 
 
 \subsection{The delayOnce type}
-The delayOnce type is used to represent values that will be available at the second time step, if the first time step is the creation of the type.
+\todo{I need a bit of help here, what exactly is it used for exept for helping us with not evaluating values and functions too early? ie given we dont have call-by-name in ocaml, this is just a thunk wrapper right?}
+The delayOnce type is used to represent values that will be available at the next time step. This is useful when we have a function that we want to pass, but we don't want to evaluate the function until the next time step. 
+
+delayOnce is implemented as a wrapper around a thunk, which is a function that takes no arguments and returns a value. The thunk is only evaluated when the value is needed, which is at the next time step.
 
 \subsection{The Later type}
 The Later type is used to represent values that will be available at a later time step. In contrast to delayOnce, the Later type does not guarantee that the value will be available at the next time step, but only at some later time step. For example, using a filter on a signal will produce a signal that does not guarantee a value at the next time step, since the filter may not pass any values through.
 
-\todo{Insert an example that shows how a map will also not guarantee a value if the filter has not met its condition yet.}
+We can for example make a later signal from a filter that never passes any values through, resulting in a later signal that never produces any values.
+
+\begin{lstlisting}
+let never_signal = filterL (fun _ -> false) some_input_signal in
+\end{lstlisting}
+
+The internal type signature of Later is a GADT
+
+\begin{lstlisting}
+type _ later =
+  | Never
+  | App : ('a -> 'b) delayOnce * 'a later -> 'b later   (* this is the O>*)
+  | Sync : 'a later * 'b later -> ('a, 'b) sync later
+  | Wait : 'a channel -> 'a later
+  | Trig : 'a option signal -> 'a later
+  | Tail : 'a signal -> 'a signal later
+...
+\end{lstlisting}
 
 \subsection{Signals}
 Signals are the core concept in Rizzo, and represent time-varying values. Signals can be constructed from channels, or from other signals using signal combinators.

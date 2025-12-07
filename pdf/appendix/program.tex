@@ -65,7 +65,7 @@ let () =
 
 \section{Extended example.ml}\label{appendix:extended_example_program}
 
-The program will take any input from the console and print it directly to the console prefixed with `From console: '. It will also send the same input to a UDP port 9000 on localhost, and print any input received on that port to the console prefixed with `From port: '.
+The program will take any input from the console and print it directly to the console prefixed with `From console: '. It will also send the same input to port 9000 on localhost, and print any input received on that port to the console prefixed with `From port: '.
 It will then use filter to make a new signal that only contains the string `time' from the console input.
 This signal will then be sampled with a clock signal that ticks every second, producing a new signal that contains the time in seconds since the program started whenever the `time' command is received from the console.
 

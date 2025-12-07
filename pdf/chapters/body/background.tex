@@ -3,6 +3,34 @@
 %Input channels : Clock signals, console signal, 
 %Output "channels":
 
+This section will give an overview of how Rizzo can be used to implement functional reactive programs. We will go through how to create input signals, use signal combinators to manipulate the signals, and how to output the signals. We then combine the three, and show an example program that uses Rizzo to implement a simple interactive application.
+
+\subsection{Inputs}
+Input sources in Rizzo are called channels. There can theoretically be implemented an input channel for any kind of input source, but currently Rizzo only has a console, clock and port input implementation.
+
+To use one of the input channels, the user requests to get one of the channels from Rizzo, and then uses the channel to create signals. For example, bellow we show how a console input channel can be used to create a signal that represents the input from the console.
+
+\begin{lstlisting}
+open Rizzo
+let console_channel = Channel.console_input () in
+let console_signal = Signal.from_channel console_channel
+\end{lstlisting}
+
+\subsection{Signal operators}
+Signals are the bread and butter of Rizzo, and Rizzo provides a number of signal combinators that can be used to manipulate signals. Some of the most notable signal combinators are \texttt{map}, \texttt{filter} and \texttt{sample}. Signal combinators come in two variants, the normal variant that works on regular signals, and the later variant that works on later signals. The later variant is denoted by appending an L to the name of the combinator.
+
+A brief overview of the signal combinators is given below:
+\begin{itemize}
+  \item \texttt{map}: Takes a function and a signal as input, and produces a new signal where the function has been applied to each value of the input signal.
+  \item \texttt{filter}: Takes a predicate function and a signal as input, and produces a new signal that only contains values that satisfy the predicate.
+  \item \texttt{sample}: Takes two signals as input, and produces a new signal that contains the tuple values from both signals whenever the first signal produces a value.
+\end{itemize}
+
+\subsection{Outputs}
+Rizzo provides output functions that can be used to output signals to various output sources. Currently Rizzo has output functions for console and network port outputs. Like the signal combinators they take a signal as input, and there are two variants, one for regular signals and one for later signals. Unlike the signal combinators, the output functions do not produce a new signal, but instead have the side effect of outputting the signal values to the output source.
+
+\subsection{Example program}
+
 To give some insight into how Rizzo can be used, we will in this section present a small example program that uses Rizzo to implement a simple interactive application. The application will read input from the console and a network port, and will output values to the console and the network port based on the input it receives.
 
 First we need to open the Rizzo modules that we will use in our program. In this case we will use the \texttt{Types}, \texttt{Signal} and \texttt{Channel} modules.
@@ -13,7 +41,7 @@ open Rizzo.Signal
 open Rizzo.Channel
 \end{lstlisting}
 
-Now that we have access to the Rizzo modules, we can start implementing our application. The application will need to read input from the console and a network port. From the \texttt{Channel} module we can get a console input channel and a port input channel.
+Now that we have access to the Rizzo modules, we can start implementing our application. The application will need to read input from the console and a network port. We start by creating input channels for the console and the network port.
 
 \begin{lstlisting}
 let console_channel = console_input () in
@@ -97,22 +125,6 @@ This will now output the time in seconds since the program started whenever the 
 
 The full example program can be seen in Appendix~\ref{appendix:extended_example_program}.
 
-\subsection{Inputs}
-Input sources in Rizzo are called channels. There can theoretically be implemented an input channel for any kind of input source, but currently Rizzo only has a console, clock and port input implementation.
-
-To use one of the input channels, the user requests to get one of the channels from Rizzo, and then uses the channel to create signals. For example, bellow we show how a console input channel can be used to create a signal that represents the input from the console.
-
-\begin{lstlisting}
-open Rizzo
-let console_channel = Channel.console_input () in
-let console_signal = Signal.from_channel console_channel
-\end{lstlisting}
-
-\subsection{Signal operators}
-
-\subsection{Outputs}
-
-%Concepts, types, 
 \section{Implementing Rizzo} \label{section:implementing_rizzo}
 
 Rizzo is implemented in \texttt{Ocaml}, because it has weak references, generalized algebraic data types (GADTs) and a strong type system. We could potentially have better performance if we chose a language with reference counting, but Ocaml is a good trade-off between performance and expressiveness.
@@ -122,7 +134,10 @@ We have implemented Rizzo as a library, so we could draw a line between the core
 
 \subsection{Channels}
 \todo{Make sure that we have explained what clocks and ticks are before this.}
-Channels are input sources to Rizzo programs, and can be considered to be  associated with a clock. Each tick of the channel's clock represents an input event on the channel.
+Channels are input sources to Rizzo programs, they are controlled by the Rizzo runtime, and provided to the user through the Rizzo Channel module.
+Channels produce input events at discrete time steps, and 
+
+, and can be considered to be associated with a clock. Each tick of the channel's clock represents an input event on the channel.
 \todo{There is only one clock}
 
 \todo{associate this with a diagram of some kind that shows the flow of data from channels -to- signals -to- output signals.}

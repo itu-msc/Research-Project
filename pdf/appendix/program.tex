@@ -1,5 +1,8 @@
 
-\section{main.ml}\label{appendix:program}
+\section{Async Rattus Haskell example port}\label{appendix:program}
+
+This is a Rizzo port of the Async Rattus example program from Fig. 4 in \citetitle{gebser_asynchronous_2023}.
+We have adapted the program to use Rizzo's API and OCaml syntax, and added a port output for the console input as well.
 
 % code snippet example
 \begin{lstlisting}
@@ -18,7 +21,6 @@ let _paper_example =
   let quit_sig = filter ((=) "quit") console in
   let show_sig = filter ((=) "show") console in
   let neg_sig  = filter ((=) "negate") console in
-  (* let echo_sig = filter ((=) "echo") console in *)
   let num_sig  = filter_map read_int console in
   let interleaved =
     interleave
@@ -33,14 +35,14 @@ let _paper_example =
   if debug then
    console_output (map (fun n -> "tick: " ^ string_of_int n) nats_prim);
   let show_nat = triggerL (fun _ n -> n) show_sig (nats_prim) in
-  port_send_outputL Unix.inet_addr_loopback 9000 (mapL string_of_int show_nat);
+  port_outputL Unix.inet_addr_loopback 9000 (mapL string_of_int show_nat);
   console_outputL (mapL (fun s -> "Number is: " ^ s) port_input);
   set_quit quit_sig;
   start_event_loop ();
   every_second_stop ()
 \end{lstlisting}
 
-\section{simple example.ml}\label{appendix:simple_program}
+\section{simple example.ml}\label{appendix:simple_example_program}
 
 \begin{lstlisting}
 open Rizzo.Types
@@ -56,7 +58,55 @@ let () =
     console_outputL (mapL (fun s -> "From console: " ^ s) console_out_signal);
     console_outputL (mapL (fun s -> "From port: " ^ s) port_out_signal);
 
-    port_send_outputL Unix.inet_addr_loopback 9000
+    port_outputL Unix.inet_addr_loopback 9000
     console_out_signal;
     start_event_loop ();
+\end{lstlisting}
+
+\section{Extended example.ml}\label{appendix:extended_example_program}
+
+The program will take any input from the console and print it directly to the console prefixed with `From console: '. It will also send the same input to a UDP port 9000 on localhost, and print any input received on that port to the console prefixed with `From port: '.
+It will then use filter to make a new signal that only contains the string `time' from the console input.
+This signal will then be sampled with a clock signal that ticks every second, producing a new signal that contains the time in seconds since the program started whenever the `time' command is received from the console.
+
+\begin{lstlisting}
+open Rizzo.Types
+open Rizzo.Signal
+open Rizzo.Channel
+
+let () =
+    (* Setup input channels, signals *)
+    let console_channel = console_input () in
+    let port_channel = port_input 9000 in
+
+    let console_in = mkSig_of_channel console_channel in
+    let port_in = mkSig_of_channel port_channel in
+
+    (* Write input to console out *)
+    console_outputL (mapL (fun s -> "From console: " ^ s) console_in);
+    console_outputL (mapL (fun s -> "From port: " ^ s) port_in);
+
+    (* Send console input to port output *)
+    port_outputL Unix.inet_addr_loopback 9000 console_in;
+
+    (* Create clock signal to sample time every second *)
+    let every_second, every_second_stop = clock_signal 1.0 in
+    let start_time = head every_second in
+
+    (* Signal that only updates on "time" commands *)
+    let time_filter = filterL (fun s -> s = "time") console_in in
+    
+    (* Sample the clock when time command has been registered *)
+    let sampled_console = sampleL time_filter every_second in
+
+    (* Output the time to the console *)
+    let formatted =
+      (mapL (fun (_, f) -> string_of_float (f -. start_time))
+          sampled_console) in
+    console_outputL formatted;
+
+    (* Start the event loop *)
+    start_event_loop ();
+    (* Stop the clock when the event loop is over *)
+    every_second_stop ()
 \end{lstlisting}

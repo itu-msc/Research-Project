@@ -18,38 +18,36 @@ Now that we have access to the Rizzo modules, we can start implementing our appl
 \begin{lstlisting}
 let console_channel = console_input () in
 let port_channel = port_input 9000 in
-...
 \end{lstlisting}
 
 Using the channels, we can create signals that represent the input from the console and the network port.
 
 \begin{lstlisting}
-let console_out_signal = mkSig_of_channel console_channel in
-let port_out_signal = mkSig_of_channel port_channel in
-...
+let console_in = mkSig_of_channel console_channel in
+let port_in = mkSig_of_channel port_channel in
 \end{lstlisting}
 
-If we simply wanted to output the input signals directly to the console, we only need to use the \texttt{console\_outputD} function from the \texttt{Channel} module to output the signals. \texttt{console\_outputD} takes a later signal as input, where the D indicates that the signal is of a later type.
+If we simply wanted to output the input signals directly to the console, we would only need to use the \texttt{console\_outputL} function to output the signals values. \texttt{console\_outputL} takes a later signal as input, where the L indicates that the signal is of a later type.
 
 \begin{lstlisting}
-console_outputL (console_out_signal);
-console_outputL (port_out_signal);
+console_outputL (console_in);
+console_outputL (port_in);
 \end{lstlisting}
 
-However, to demonstrate the use of signal combinators in Rizzo, we will modify the output signals to prepend a string to the input values before outputting them to the console. We can use the \texttt{mapL} function from the \texttt{Signal} module to achieve this. \texttt{mapL} takes a function and a later signal as input, and applies the function to each value of the signal.
+However, to demonstrate the use of the map signal combinator in Rizzo, We will map the input to a new string with a prefix, before outputting them to the console. The \texttt{mapL} combinator takes a function and a later signal as input, and produces a new later signal where the function has been applied to each value of the input signal.
 
 \begin{lstlisting}
-console_outputL (mapL (fun s -> "From console: " ^ s) console_out_signal);
-console_outputL (mapL (fun s -> "From port: " ^ s) port_out_signal);
+console_outputL (mapL (fun s -> "From console: " ^ s) console_in);
+console_outputL (mapL (fun s -> "From port: " ^ s) port_in);
 \end{lstlisting}
 
-Given we have not made a client that writes to the port, the port output will not produce any output, so lets fix that by taking the input from the console and writing it to the port as well. We can use the \texttt{port\_outputD} function from the \texttt{Channel} module to output to the port.
+Given we have not made a client that writes to the port, the port output will not produce any output, so lets fix that by taking the input from the console and writing it to the port as well. We can use the \texttt{port\_outputL} function from the \texttt{Channel} module to output to the port.
 
 \begin{lstlisting}
-port_send_outputL Unix.inet_addr_loopback 9000 console_out_signal;
+port_outputL Unix.inet_addr_loopback 9000 console_in;
 \end{lstlisting}
 
-To get it to run and block the main thread, we call \lstinline{start_event_loop ();} at the end of the program.
+To block the main thread so the program does not exit, we call \lstinline{start_event_loop ();} at the end of the program.
 
 An example interaction with the program so far could look like this:
 
@@ -61,25 +59,43 @@ Hello again
 From console: Hello again
 From port: Hello again
 \end{verbatim}
-\footref{appendix:simple_program}
 
-Lets make it a bit more interesting by adding some more complex behaviour. We will add a clock signal that ticks every second, and a conditional that when input is received from the console, only prints if the current seconds that have passed are an even number.
+This was quite a simple program, but to show some more of Rizzo's capabilities, we can extend the program a bit further. Good examples of signal combinators are \texttt{filter} and \texttt{sample}.
 
-We can create a clock signal using the \texttt{clock\_signal} function. The \texttt{clock\_signal} function takes a float as input, which represents the interval in seconds between each tick of the clock.
+The \texttt{filter} function takes a predicate function and a signal as input, and produces a new signal that only contains values that satisfy the predicate. 
+
+We could for example filter the console input signal to only contain values where the string equals `time'.
+
+\begin{lstlisting}
+let time_filter = filterL (fun s -> s = "time") console_in in
+\end{lstlisting}
+
+The \texttt{sample} function on the other hand, takes two signals, and produces a new signal that contains the tuple values from both signals whenever the first signal produces a value.
+
+We could for example sample a clock signal that ticks every second with the filtered console signal.
+
+To make a clock signal that ticks every second, we can use the \texttt{clock\_signal} function from the \texttt{Channel} module.
 
 \begin{lstlisting}
 let every_second, every_second_stop = clock_signal 1.0 in
+let start_time = head every_second in
+let sampled_console = sampleL time_filter every_second in
 \end{lstlisting}
 
-% We can then create a signal that counts the number of ticks that have passed using the \texttt{scan} function. The \texttt{scan} function takes a function, an initial value, and a signal as input. \texttt{scan} then produces a new signal by applying the function to the last value and the current value of the input signal.
+The \texttt{every\_second\_stop} value is a function that can be called to stop the clock signal when it is no longer needed. This mostly applies to long running programs that need to clean up resources when they exit.
 
-% \begin{lstlisting}
-% let nats init = scan (fun n _ -> n + 1) init every_second in
-% \end{lstlisting}
+We can then output the sampled console signal to the console, prepending a string to the output values.
 
-To implement the conditional behaviour, we can use the \texttt{filter} function to create a signal that only passes through values when input is received from the console. 
+\begin{lstlisting}
+let formatted =
+  (mapL (fun (_, f) -> string_of_float (f -. start_time))
+    sampled_console) in
+console_outputL formatted;
+\end{lstlisting}
 
-\todo{Finish this :)}
+This will now output the time in seconds since the program started whenever the user inputs `time' in the console.
+
+The full example program can be seen in Appendix~\ref{appendix:extended_example_program}.
 
 \subsection{Inputs}
 Input sources in Rizzo are called channels. There can theoretically be implemented an input channel for any kind of input source, but currently Rizzo only has a console, clock and port input implementation.
@@ -124,7 +140,7 @@ The Later type is used to represent values that will be available at a later tim
 Signals are the core concept in Rizzo, and represent time-varying values. Signals can be constructed from channels, or from other signals using signal combinators.
 Signals are implemented as an infinite sequence, with the head being the current value of the signal, and the tail being a new later signal of the same type.
 
-For a reader unfamiliar with FRP, the signals can be considered a pipes where values flow through the network and ends up at output signals.
+For a reader unfamiliar with FRP, the signals can be considered to be pipes where values flow through the network and ends up at output signals.
 
 
 % \clearpage

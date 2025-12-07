@@ -28,7 +28,7 @@ let _paper_example =
   if debug then
    console_output (map (fun n -> "tick: " ^ string_of_int n) nats_prim);
   let show_nat = triggerL (fun _ n -> n) show_sig (nats_prim) in
-  port_send_outputL Unix.inet_addr_loopback 9000 (mapL string_of_int show_nat);
+  port_outputL Unix.inet_addr_loopback 9000 (mapL string_of_int show_nat);
   console_outputL (mapL (fun s -> "Number is: " ^ s) port_input);
   set_quit quit_sig;
   start_event_loop ();
@@ -39,8 +39,8 @@ let _switch_example =
   let inputChan = console_input () in
   let inputSig = mkSig_of_channel inputChan in
   let clockSig, stop = clock_signal 10.0 in
-  let sampled = sampleL clockSig inputSig in
-  console_outputL (mapL (fun (f, s) -> "You last wrote: " ^ s ^ "\nat time" ^ string_of_float f) sampled);
+  let sampled = sampleL inputSig clockSig in
+  console_outputL (mapL (fun (s, f) -> "You last wrote: '" ^ s ^ "' at time " ^ string_of_float f) sampled);
   start_event_loop ();
   stop ()
 
@@ -50,6 +50,42 @@ let _scan_example =
   let countSig = scanL (fun c _ -> c + 1 ) 0 inputSig in
   console_outputL (mapL (Format.asprintf "You have written something '%a' times" Format.pp_print_int) countSig);
   start_event_loop ()
+
+let _minor_example =
+    (* Setup input channels, signals *)
+    let console_channel = console_input () in
+    let port_channel = port_input 9000 in
+
+    let console_in = mkSig_of_channel console_channel in
+    let port_in = mkSig_of_channel port_channel in
+
+    (* Write input to console out *)
+    console_outputL (mapL (fun s -> "From console: " ^ s) console_in);
+    console_outputL (mapL (fun s -> "From port: " ^ s) port_in);
+
+    (* Send console input to port output *)
+    port_outputL Unix.inet_addr_loopback 9000 console_in;
+
+    (* Create clock signal to sample time every second *)
+    let every_second, every_second_stop = clock_signal 1.0 in
+    let start_time = head every_second in
+
+    (* Signal that only updates on "time" commands *)
+    let time_filter = filterL (fun s -> s = "time") console_in in
+    
+    (* Sample the clock when time command has been registered *)
+    let sampled_console = sampleL time_filter every_second in
+
+    (* Output the time to the console *)
+    let formatted =
+      (mapL (fun (_, f) -> string_of_float (f -. start_time))
+          sampled_console) in
+    console_outputL formatted;
+
+    (* Start the event loop *)
+    start_event_loop ();
+    (* Stop the clock when the event loop is over *)
+    every_second_stop ()
 
 (* let _scanfilterL_example =
   let inputChan = console_input () in
@@ -70,7 +106,7 @@ let _scan_example =
   let port_out_signal = mkSig_of_channel port_channel in
   console_outputL (mapL (fun s -> "From console: " ^ s) console_out_signal);
   console_outputL (mapL (fun s -> "From port: " ^ s) port_out_signal);
-  port_send_outputL Unix.inet_addr_loopback 9000 console_out_signal;
+  port_outputL Unix.inet_addr_loopback 9000 console_out_signal;
   start_event_loop (); *)
 
 (* 
@@ -92,7 +128,7 @@ $client.Close() *)
   let countSig = scan (fun c _ -> c + 1) 0 inputSig in
   let countSeconds = scan (fun c _ -> c + 1) 0 one_sec in
   let thirdSec = 0 @: filterL (fun c -> c mod 3 = 0) (tail countSeconds) in
-  console_output (map (Format.asprintf "You have written something '%a' times after this many secconds" Format.pp_print_int) countSig);
+  console_output (map (Format.asprintf "You have written something '%a' times after this many seconds" Format.pp_print_int) countSig);
   console_output (map (fun s ->
     Rizzo.Internals.Heap.print_heap ();
     "input 2: " ^ s

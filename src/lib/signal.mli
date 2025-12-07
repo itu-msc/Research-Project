@@ -70,7 +70,7 @@ val switchS     : 'a signal -> ('a -> 'a signal) later -> 'a signal
 val switchR     : 'a signal -> (('a -> 'a signal) signal) later -> 'a signal
 val jump        : ('a -> 'a signal option) -> 'a signal -> 'a signal
 val sample      : 'a signal -> 'b signal -> ('a * 'b) signal
-val sampleL     : 'a signal -> 'b signal later -> ('a * 'b) signal later
+val sampleL     : 'a signal later -> 'b signal -> ('a * 'b) signal later
 val scan        : ('b -> 'a -> 'b) -> 'b -> 'a signal -> 'b signal
 val scanL       : ('a -> 'b -> 'a) -> 'a -> 'b signal later -> 'a signal later
 val interleave  : ('a -> 'a -> 'a) -> 'a signal -> 'a signal -> 'a signal
@@ -86,6 +86,7 @@ val pp_signal   : (Format.formatter -> 'a -> unit) -> Format.formatter -> 'a sig
 (** [init_signal c a] = [a @: mkSig_of_channel c]*)
 val init_signal : 'a channel -> 'a -> 'a signal
 val clock_signal : float -> float signal * (unit -> unit)
+val clock_signalL : float -> float signal later * (unit -> unit)
 val clock_channel : float -> float channel * (unit -> unit) (* returns channel and stopper *)
 
 
@@ -98,7 +99,7 @@ val console_outputL: string signal later -> unit
 
 
 (** Outputs the eventual value of later signal to the given port at address *)
-val port_send_outputL : Unix.inet_addr -> int -> string signal later -> unit
+val port_outputL : Unix.inet_addr -> int -> string signal later -> unit
 
 
 (** Quits the program on first tick *)

@@ -65,7 +65,8 @@ let scanL f b s = scan f b |>> s
 let sample xs ys =
   map (fun x -> (x, head ys)) xs
 
-let sampleL xs ys = sample xs |>> ys
+let sampleL xs ys = 
+  map (fun x -> (x, head ys)) |>> xs
 
 let rec jump f s =
   let cont s = match f (head s) with
@@ -98,13 +99,13 @@ let filter p = filter_map (fun x -> if p x then Some x else None)
 let filterL p = filter_mapL (fun x -> if p x then Some x else None)
 
 let trigger f s1 s2 =
-  map (fun (a,b) -> f a b) (sample s1 s2)
+  sample s1 s2 |> map (fun (a,b) -> f a b)
 
 let triggerL (f: 'a -> 'b -> 'c) (s1 : 'a signal later) (s2 : 'b signal) : 'c signal later =
   (fun s1' -> trigger f s1' s2) |>> s1
 
-(* TODO: Not thread safe, this can cause race conditions.
-  When channels can be other things than int then change this to use float. *)
+(* returns a channel that produces a tick every [interval] seconds,
+    starting [interval] seconds from now *)
 let clock_channel interval =
   let start = Unix.gettimeofday () +. interval in
   let chan = new_channel () in
@@ -132,6 +133,11 @@ let clock_signal interval =
   let signal = init_signal chan (Unix.gettimeofday ()) in
   (signal, stop)
 
+let clock_signalL interval =
+  let chan, stop = clock_channel interval in
+  let signal = mkSig_of_channel chan in
+  (signal, stop)
+
 (* TODO: Make the output methods return a callback that can clean up the output signal from the list *)
 let output_signals = ref []
 
@@ -149,8 +155,23 @@ let start_event_loop () : unit =
     Thread.delay 1.0 (* adjust as needed; smaller = more responsive, larger = less CPU *)
   done
 
-(* use Unix.inet_addr_loopback for localhost *)
-let port_send_outputL address port (s : string signal later) : unit =
+(** Send newline-terminated strings from a later string signal
+  to a TCP connection.
+
+  Parameters:
+  - address:  the IPv4 address to connect to (use Unix.inet_addr_loopback for localhost)
+  - port:     the TCP port number to connect to
+  - s:        a later string signal to send values from
+
+  Behavior:
+  - Opens a TCP (PF_INET, SOCK_STREAM) connection to (address, port) once when called
+    and obtains an OCaml out_channel for writing.
+  - Registers a sender that writes each incoming string value followed by "\n" and flushes.
+  - On write errors the channel is closed and the internal connection is marked None;
+    subsequent sends will be no-ops (there is no automatic reconnect logic).
+  - The sender is stored in output_signals so it will be driven by the runtime/event loop. 
+*)
+let port_outputL address port (s : string signal later) : unit =
   let connect () =
     let sock = Unix.socket Unix.PF_INET Unix.SOCK_STREAM 0 in
     Unix.connect sock (Unix.ADDR_INET (address, port));

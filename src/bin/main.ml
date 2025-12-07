@@ -13,7 +13,6 @@ let _paper_example =
   let quit_sig = filterL ((=) "quit") console in
   let show_sig = filterL ((=) "show") console in
   let neg_sig  = filterL ((=) "negate") console in
-  (* let echo_sig = filterL ((=) "echo") console in *)
   let num_sig  = filter_mapL read_int console in
   let interleaved =
     interleave
@@ -22,7 +21,7 @@ let _paper_example =
       (map (fun m n -> m + n) (0  @: num_sig))
   in
   let rec nats' init =
-    switchS (nats init) ((fun s n -> nats' (head s n)) |>> tail interleaved)
+    switchS (nats init) ((fun s n -> nats' (head s n)) <<| tail interleaved)
   in
   let nats_prim = nats' 0 in
   if debug then
@@ -33,7 +32,7 @@ let _paper_example =
   set_quit quit_sig;
   start_event_loop ();
   every_second_stop ()
-      
+
 
 let _switch_example =
   let inputChan = console_input () in

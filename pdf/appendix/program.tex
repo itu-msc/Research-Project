@@ -29,7 +29,7 @@ let _paper_example =
       (map (fun m n -> m + n) (0  @: num_sig))
   in
   let rec nats' init =
-    switchS (nats init) ((fun s n -> nats' (head s n)) |>> tail interleaved)
+    switchS (nats init) ((fun s n -> nats' (head s n)) <<| tail interleaved)
   in
   let nats_prim = nats' 0 in
   if debug then

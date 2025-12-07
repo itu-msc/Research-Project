@@ -54,14 +54,14 @@ let simple_tf txt =
 let _gui = 
   let btn = simple_button "add" in
   let updateFun () w = const (Above (w, TF (simple_tf ""))) in
-  let update = (fun () -> const @@ updateFun ()) |>> wait (on_click btn) in
+  let update = (fun () -> const @@ updateFun ()) <<| wait (on_click btn) in
   let fields = switchR (const Empty) update in 
   Above (Btn btn, Dyn fields)
 
 let _updateFun _ w = 
   let remove = simple_button "remove" in
   let field = NextTo (TF (simple_tf ""), Btn remove) in 
-  const (Above (w, Dyn (field @: ((fun () -> const Empty) |>> wait @@ on_click remove))))
+  const (Above (w, Dyn (field @: ((fun () -> const Empty) <<| wait @@ on_click remove))))
 
 
   (* let id = alloc 0  in

@@ -23,6 +23,7 @@ val trig : 'a option signal -> 'a later
 val tail : 'a signal -> 'a signal later
 val ostar : ('a -> 'b) delayOnce -> 'a delayOnce -> 'b delayOnce
 val fa : ('a -> 'b) -> 'a later -> 'b later
-val (|>>) : ('a -> 'b) -> 'a later -> 'b later
+val (<<|) : ('a -> 'b) -> 'a later -> 'b later
+val (|>>) : 'a later -> ('a -> 'b) -> 'b later
 
 val pp_later : Format.formatter -> 'a later -> unit

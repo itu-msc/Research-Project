@@ -6,28 +6,28 @@ let const x = x @: never
 
 let head s = (Internals.MainTypes.signal_get_data s).head
 
-let rec mkSig d = (fun a -> a @: (mkSig d)) |>> d
+let rec mkSig d = (fun a -> a @: (mkSig d)) <<| d
 let mkSig_of_channel k = mkSig @@ wait k
 
 let init_signal k v =
   v @: mkSig_of_channel k
 
-let rec map f s = f (head s) @: (map f |>> tail s)
-let mapL f s = map f |>> s
+let rec map f s = f (head s) @: (map f <<| tail s)
+let mapL f s = map f <<| s
 
 let rec map2 f xs ys =
   let cont = function
     | Fst xs' -> map2 f xs' ys
     | Snd ys' -> map2 f xs  ys'
     | Both (xs',ys') -> map2 f xs' ys'
-  in f (head xs) (head ys) @: (cont |>> sync (tail xs) (tail ys))
+  in f (head xs) (head ys) @: (cont <<| sync (tail xs) (tail ys))
 
 let rec switch s d =
   let cont = function
     | Fst s' -> switch s' d
     | Snd d' -> d'
     | Both (_, d') -> d' in
-  head s @: (cont |>> (sync (tail s) d))
+  head s @: (cont <<| (sync (tail s) d))
 
 let rec zip xs ys =
   let cont = function
@@ -35,7 +35,7 @@ let rec zip xs ys =
     | Snd ys' -> zip xs  ys'
     | Both (xs', ys') -> zip xs' ys'
   in
-  (head xs, head ys) @: (cont |>> sync (tail xs) (tail ys))
+  (head xs, head ys) @: (cont <<| sync (tail xs) (tail ys))
 
 let rec switchS s d =
   let x, xs = head s, tail s in
@@ -44,11 +44,11 @@ let rec switchS s d =
     | Snd f -> f x
     | Both(_,f) -> f x
   in
-  x @: (cont |>> sync xs d)
+  x @: (cont <<| sync xs d)
 
 (** repeatedly switch whenever `d` ticks *)
 let rec switchR s d =
-  let d' = (fun s' x -> switchR (head s' x) (tail s') ) |>> d in
+  let d' = (fun s' x -> switchR (head s' x) (tail s') ) <<| d in
   switchS s d'
 
 let pp_signal pp_a out s =
@@ -58,22 +58,22 @@ let pp_signal pp_a out s =
 let rec scan f b s =
   let hd, tl = head s, tail s in
   let b' = f b hd in
-  b' @: (scan f b' |>> tl)
+  b' @: (scan f b' <<| tl)
 
-let scanL f b s = scan f b |>> s
+let scanL f b s = scan f b <<| s
 
 let sample xs ys =
   map (fun x -> (x, head ys)) xs
 
 let sampleL xs ys = 
-  map (fun x -> (x, head ys)) |>> xs
+  xs |>> map (fun x -> (x, head ys))
 
 let rec jump f s =
   let cont s = match f (head s) with
   | None -> jump f s
   | Some s' -> s'
   in
-  head s @: (cont |>> (tail s))
+  head s @: (cont <<| (tail s))
 
 let interleave : ('a -> 'a -> 'a) -> 'a signal -> 'a signal -> 'a signal =
   fun f xs ys ->
@@ -87,7 +87,7 @@ let interleave : ('a -> 'a -> 'a) -> 'a signal -> 'a signal -> 'a signal =
         | Snd ys' -> build (head ys') xs ys'
         | Both (xs', ys') -> build (f (head xs') (head ys')) xs' ys'
       in
-      current @: (cont |>> sync (tail xs) (tail ys))
+      current @: (cont <<| sync (tail xs) (tail ys))
     in
     build (f (head xs) (head ys)) xs ys
 
@@ -102,7 +102,7 @@ let trigger f s1 s2 =
   sample s1 s2 |> map (fun (a,b) -> f a b)
 
 let triggerL (f: 'a -> 'b -> 'c) (s1 : 'a signal later) (s2 : 'b signal) : 'c signal later =
-  (fun s1' -> trigger f s1' s2) |>> s1
+  s1 |>> (fun s1' -> trigger f s1' s2)
 
 (* returns a channel that produces a tick every [interval] seconds,
     starting [interval] seconds from now *)

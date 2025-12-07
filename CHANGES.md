@@ -1,6 +1,8 @@
 # 0.2.0 - 2025-12-05
 
 - Changed signal combinators to have `*L` suffix for later signals, rather than `*D`.
+- Swapped order of arguments for `|>>` (applicative operator) to better fit a left-to-right reading direction, and replaced to previous order (function first) with `<<|`.
+- Overall (and totally unbiased), a much better version. 
 
 # 0.1.0 - 2025-11-27
 

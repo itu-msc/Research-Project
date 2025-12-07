@@ -20,7 +20,7 @@ let id_with_side_effect =
 ignore ("initial" @: mapL id_with_side_effect console);
 start_event_loop ()
 \end{lstlisting}
-This problem of `ghosts' signals in the heap would disappear in a langauge with reference counting rather than a garbage-collected runtime like that of OCaml. With reference counting, the signal in listing \ref{listing:heap_side_effect} would be immediately discarded after ignore, preventing unexpected artifacts of any side-effects.
+This problem of `ghost' signals in the heap would disappear in a langauge with reference counting rather than a garbage-collected runtime like that of OCaml. With reference counting, the signal in listing \ref{listing:heap_side_effect} would be immediately discarded after ignore, preventing unexpected artifacts of any side-effects.
 
 %Concrete implementation, why a linked list? Why weak reference etc. Also the "alloc" to create signals.
 
@@ -40,9 +40,10 @@ Combined with the behaviour of garbage collector (see listing  \ref{listing:heap
 %Mention that we are using GADTs and therefore we must in our implementation use "polymorphic recursion". In OCaml we must explicitly state the universally quantified type variable:
 % https://stackoverflow.com/a/69144537
 % https://ocaml.org/manual/5.4/polymorphism.html#s:polymorphic-recursion
-The function $ advance : \text{channel } B \rightarrow \text{later } A \rightarrow B \rightarrow A $, implements the \textit{advance semantics}, which define how values of type $\text{later }A$ are brought the current time step, if they have ticked. Since the \texttt{later} modality is modelled as a GADT, $advance$ is polymorphically recursive because it may make recursive calls over later values who element types change. Consider the \texttt{App} case in listing \ref{listing:rizzo_advance_code}, where the existential type $c$ introduced from GADT is different from $a$. In this case it is necessary to make the polymorphic recursion of $advance$ explicit, by using a \textit{locally abstract type}, in order for the function to type check.
+The function $ advance : \text{channel } B \rightarrow \text{later } A \rightarrow B \rightarrow A $, implements the \textit{advance semantics}, which define how later values are brought into the current time step if they have ticked. Since the \texttt{later} modality is modelled as a GADT, $advance$ is polymorphically recursive since it recurse over later values whose element types change. Consider the \texttt{App} case in listing \ref{listing:rizzo_advance_code}, where the existential type $c$ introduced from GADT is different from $a$. In order for this case to type check in OCaml, we must use a locally abstract type $a$ to make the polymorphic recursion explicit.
 %Do we cite ocaml GADTS? https://ocaml.org/manual/5.2/gadts-tutorial.html
-\begin{lstlisting}[caption={OCaml implementation of the advance semantics of Rizzo including only the pattern match for \texttt{App} (\todo{applicative action}). Existential type $c$ have been made explicit to better show need for polymorphic recursion. }, label={listing:rizzo_advance_code}]
+
+\begin{lstlisting}[caption={OCaml implementation of the advance semantics of Rizzo including only the pattern match for \texttt{App} (\todo{applicative action}). Existential type $c$ have been made explicit to better show need for polymorphic recursion.}, label={listing:rizzo_advance_code}]
 let rec advance 
   : type a . 'b channel -> a later -> 'b -> a =
   fun k u w ->

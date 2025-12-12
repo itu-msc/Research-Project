@@ -10,7 +10,7 @@ only on the current and past inputs, and each input eventually produces an
 output. However, such representations are prone to \emph{space leaks}, where
 old signal values can be retained in memory indefinitely \cite{bahr_asynchronous_2023}.
 
-\section{Modal Types}
+\subsection{Modal Types}
 To avoid space leaks (and to guarantee other operational properties such as causality and productivity), previous works \textit{modal types}\cite{neel_krishnaswami_2013,gebser_asynchronous_2023}. 
 These modalities refine the type of a value with information about \emph{when} it is available and whether it is safe to retain across time steps. 
 
@@ -37,7 +37,7 @@ However, this elegant solution comes at the cost of added complexity to the type
 \]
 Observe in particular the use of $box$ (the introduction form for $\square$) that is required fit the stable modality of $map$.
 
-\section{Rizzo}
+\subsection{Rizzo}
 Rizzo\cite{rizzo_modal_2025} is a FRP language that simplifies the modal type system while still guaranteeing productivity, causality, and the absence of space leaks. It achieves this by changing the semantics of signals. 
 
 With the new semantics signals are mutable references: 
@@ -56,8 +56,7 @@ Notice, the new definition of $map$ permits a reference to $xs$ inside the lambd
 
 %Er der mere at sige om Rizzo? Hvorfor er Rizzo interessant?
 
-\section{Contributions}
-\section{Contributions}
+\subsection{Contributions}
 
 In this paper we present an OCaml library that embeds the core ideas of Rizzo
 as an embedded domain-specific language. Our contributions are:

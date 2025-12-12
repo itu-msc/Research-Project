@@ -1,4 +1,5 @@
-\section{Rizzo Core private methods}
+\subsection{Rizzo Core private methods}
+\todo{something to fix the flow and shit now that we have merged it into implementing Rizzo}
 %The core, whatever "glues" the concepts together, making it a language
 To give executable meaning to these constructions, \texttt{Signal, delayOnce, later}, Rizzo defines operational semantics\cite{rizzo_modal_2025}. The operational semantics of Rizzo are split into two parts. The first part is the evaluation semantics which describe how terms are computed. The second part, the reactive semantics, describe how signals and later values \textit{react} to input over time. Since our implementation of Rizzo is an embedded language, the evaluation semantics are provided by OCaml. Therefore, this section will primarily focus on the reactive semantics and the other aspects necessary to make Rizzo \textit{reactive}.
 

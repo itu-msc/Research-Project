@@ -1,4 +1,4 @@
-# Rizzo Ocaml Library
+# Rizzo OCaml Library
 
 This is an OCaml library implementation of the Rizzo FRP model.
 

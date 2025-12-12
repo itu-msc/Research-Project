@@ -1,6 +1,6 @@
-Reactive programs are long‑lived programs that continuously interact with their environment by receiving inputs and producing outputs. Typical examples include servers, interactive games, and graphical user interfaces.
+Reactive programs are long-lived programs that continuously interact with their environment by receiving inputs and producing outputs. Typical examples include servers, interactive games, and graphical user interfaces.
 
-Functional Reactive Programming (FRP) \cite{ElliottHudak97:Fran} is a high level paradigm for building reactive programs. It lets programmers use the familiar techniques of functional programming to implement and reason about time-flow and events. It lets programmers use familiar functional programming techniques to declaratively describe time-varying values and events, rather than in terms of low-level callbacks or mutable state.
+Functional reactive programming (FRP) \cite{ElliottHudak97:Fran} is a high-level paradigm for building reactive programs. It lets programmers use the familiar techniques of functional programming to implement and reason about time-flow and events. It lets programmers use familiar functional programming techniques to declaratively describe time-varying values and events, rather than in terms of low-level callbacks or mutable state.
 
 At the core of FRP is the abstraction of a \emph{signal} (also known as a \emph{behaviour} \cite{ElliottHudak97:Fran}), which models the interaction with the environment over time. Intuitively, a signal of type $\text{Sig }A$ represents a time-varying value of type $A$, that can be operated on in a purely functional way.
 
@@ -46,9 +46,11 @@ With the new semantics signals are mutable references:
 \]
 A value of type $\text{Sig }a$ is thus a mutable reference to a pair $(u,v)$, where $u$ is the current value (the head) and $v$ is a delayed computation (the tail) used to update the reference in the next time step. Importantly, users of Rizzo do not update this reference themselves, instead the reference is updated by evaluating the tail $v$. The process of updating signals is defined by the \textit{reactive semantics} (explained in section \ref{section:rizzo_semantics}). 
 
+\todo{maybe split to 2 different examples? to put more focus on being allowed to use head xs}
+
 The mutable references in the semantics of signals is what allows Rizzo to forego the $\square$ (stable) modality. Since signals are updated in place, it is impossible for Rizzo programs to reference the same signal from different time steps. Without the stable modality we can redefine $map : (a \rightarrow b) \rightarrow \text{Sig }a \rightarrow \text{Sig }b$ and use it to also redefine the $mult2$ function:
 \[
-  mult2 \; xs = map \; (\lambda x. x * head \; xs) \; xs
+  mult2 \; xs = map \; (\lambda x. x + head \; xs) \; xs
 \]
 Notice, the new definition of $map$ permits a reference to $xs$ inside the lambda. This is safe, because $xs$ is a mutable reference and therefore does not leak space. Were it not for changed semantics, this definition of $mult2$ would both leak space, by referencing the \textit{old} values of $xs$, and fail to type check given the previous definition of $map$. The type of the lambda would not be stable, since it references $xs : \text{Sig }A$.
 
@@ -58,10 +60,10 @@ Notice, the new definition of $map$ permits a reference to $xs$ inside the lambd
 \section{Contributions}
 
 In this paper we present an OCaml library that embeds the core ideas of Rizzo
-as an embedded domain‑specific language. Our contributions are:
+as an embedded domain-specific language. Our contributions are:
 
 \begin{itemize}
-  \item We design and implement a small Rizzo‑style FRP library in OCaml,
+  \item We design and implement a small Rizzo-style FRP library in OCaml,
     closely following the operational semantics of \cite{rizzo_modal_2025}.
     Section~\ref{using_rizzo} illustrates how to use this library to build
     simple reactive programs.

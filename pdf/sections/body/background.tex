@@ -13,7 +13,7 @@ To use one of the input channels, the user requests to get one of the channels f
 \begin{lstlisting}
 open Rizzo
 let console_channel = Channel.console_input () in
-let console_signal = Signal.from_channel console_channel
+let console_signal = Signal.mkSig_of_channel console_channel
 \end{lstlisting}
 
 \subsection{Signal combinators}
@@ -28,6 +28,79 @@ A brief overview of the signal combinators is given below:
 
 \subsection{Outputs}
 Rizzo provides output functions that can be used to output signals to various output sources. Currently Rizzo has output functions for console and network port outputs. Like the signal combinators there can be two variants, one for regular signals and one for later signals. Unlike the signal combinators, the output functions do not produce a new signal, but instead have the side effect of outputting the signal values to the output source.
+
+\subsection{Functions and types}
+
+Rizzo provides a number of functions and types that can be used to work with signals. Some of the most notable functions and types are:
+
+\todo{shorten and remove types that are not interesting}
+
+Main types:
+\begin{lstlisting}
+type 'a channel = Index of int
+
+type _ later =
+  | Never
+  | App : ('a -> 'b) delayOnce * 'a later -> 'b later
+  | Sync : 'a later * 'b later -> ('a, 'b) sync later
+  | Wait : 'a channel -> 'a later
+  | Trig : 'a option signal -> 'a later
+  | Tail : 'a signal -> 'a signal later
+and 'a signal_data = { 
+  id: int; 
+  mutable head: 'a;
+  mutable tail: 'a signal later;
+  mutable updated: bool
+}
+and 'a signal = SignalID of 'a signal_data
+\end{lstlisting}
+
+Notable channel and signal functions:
+\begin{lstlisting}
+val new_channel : unit -> 'a channel
+val mkSig : 'a later -> 'a signal later
+val mkSig_of_channel : 'a channel -> 'a signal later
+
+val clock_channel : float -> float channel * (unit -> unit)
+val clock_signal : float -> float signal * (unit -> unit)
+  
+val never : 'a later
+val delay : (unit -> 'a) -> 'a delayOnce
+val adv : 'a delayOnce -> 'a
+val app : ('a -> 'b) delayOnce -> 'a later -> 'b later
+val sync: 'a later -> 'b later -> ('a, 'b) sync later
+val wait : 'a channel -> 'a later
+val trig : 'a option signal -> 'a later
+val tail : 'a signal -> 'a signal later
+val ostar : ('a -> 'b) delayOnce -> 'a delayOnce -> 'b delayOnce
+val fa : ('a -> 'b) -> 'a later -> 'b later
+val (<<|) : ('a -> 'b) -> 'a later -> 'b later
+val (|>>) : 'a later -> ('a -> 'b) -> 'b later
+
+val head : 'a signal -> 'a
+val map : ('a -> 'b) -> 'a signal -> 'b signal
+val mapD : ('a -> 'b) -> 'a signal later -> 'b signal later
+val zip : 'a signal -> 'b signal -> ('a * 'b) signal
+val switch : 'a signal -> 'a signal later -> 'a signal
+val switchS : 'a signal -> ('a -> 'a signal) later -> 'a signal
+val switchR : 'a signal -> (('a -> 'a signal) signal) later -> 'a signal
+val jump : ('a -> 'a signal option) -> 'a signal -> 'a signal
+val sample : 'a signal -> 'b signal -> ('a * 'b) signal
+val scan : ('b -> 'a -> 'b) -> 'b -> 'a signal -> 'b signal
+val scanD : ('a -> 'b -> 'a) -> 'a -> 'b signal later -> 'a signal later
+val interleave  : ('a -> 'a -> 'a) -> 'a signal -> 'a signal -> 'a signal
+val filter : ('a -> bool) -> 'a signal later -> 'a signal later
+val filter_map : ('a -> 'b option) -> 'a signal later -> 'b signal later
+val triggerD : ('a -> 'b -> 'c) -> 'a signal later -> 'b signal -> 'c signal later
+val map2 : ('a -> 'b -> 'c) -> 'a signal -> 'b signal -> 'c signal
+
+val port_send_outputD : Unix.inet_addr -> int -> string signal later -> unit
+
+val console_output : string signal -> unit
+val console_outputD: string signal later -> unit
+val set_quit : 'a signal later -> unit
+val start_event_loop : unit -> unit
+\end{lstlisting}
 
 \subsection{Example program}
 

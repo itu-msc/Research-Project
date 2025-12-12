@@ -63,7 +63,7 @@ Furthermore, removing the stable modality also allows a bigger space well-typed 
 \[
   sample \; xs \; ys = map \; (\lambda x. \langle x , head \; ys \rangle ) \; xs
 \]
-The $sample$ function takes two signals $xs$ and $ys$ to create a new signal that samples the head of $ys$ whenever $xs$ produces a value $x$ and then produces a pair $(x, head \; ys)$. This program would fail to type-check with the previous defintion of $map$, since the lambda's type is not stable as it references $ys$ and this reference would cause space leaks as the program is required to retain old values of $ys$. However, with the semantics of Rizzo, it is safe for the lambda to reference $ys$ directly. 
+The $sample$ function takes two signals $xs$ and $ys$ to create a new signal that samples the head of $ys$ whenever $xs$ produces a value $x$ and then produces a pair $(x, head \; ys)$. This program would fail to type-check with the previous defintion of $map$, since the lambda's type is not stable as it references $ys$ and this reference would cause a space leak as old values of $ys$ must be kept in memory. However, with the semantics of Rizzo, it is safe for the lambda to reference $ys$ directly. 
 
 % WE HAD TO SAY "OH BTW, signals are asynchronous somewhere"
 The $sample$ function is particularly interesting because signals in Rizzo are \emph{asynchronous}; different signals may not necessarily produce values simultaneously. Where it can be used to read data from a signal based on some event happening, as demonstrated in Section~\ref{section:rizzo_example}.

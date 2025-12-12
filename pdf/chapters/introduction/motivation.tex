@@ -11,7 +11,7 @@ output. However, such representations are prone to \emph{space leaks}, where
 old signal values can be retained in memory indefinitely \cite{bahr_asynchronous_2023}.
 
 \section{Modal Types}
-To avoid space leaks (and to guarantee other operational properties such as causality and productivity), previous works introduces \textit{modal types}\cite{gebser_asynchronous_2023}. 
+To avoid space leaks (and to guarantee other operational properties such as causality and productivity), previous works \textit{modal types}\cite{neel_krishnaswami_2013,gebser_asynchronous_2023}. 
 These modalities refine the type of a value with information about \emph{when} it is available and whether it is safe to retain across time steps. 
 
 The two main modalities are the \emph{later} modality $\bigcirc A$ and the

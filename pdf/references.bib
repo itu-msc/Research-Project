@@ -52,3 +52,42 @@
   url           = {https://arxiv.org/abs/2512.09412},
   doi           = {10.48550/arXiv.2512.09412}
 }
+
+@inproceedings{10.1145/2500365.2500588,
+author = {Krishnaswami, Neelakantan R.},
+title = {Higher-order functional reactive programming without spacetime leaks},
+year = {2013},
+isbn = {9781450323260},
+publisher = {Association for Computing Machinery},
+address = {New York, NY, USA},
+url = {https://doi.org/10.1145/2500365.2500588},
+doi = {10.1145/2500365.2500588},
+abstract = {Functional reactive programming (FRP) is an elegant approach to declaratively specify reactive systems. However, the powerful abstractions of FRP have historically made it difficult to predict and control the resource usage of programs written in this style.In this paper, we give a new language for higher-order reactive programming. Our language generalizes and simplifies prior type systems for reactive programming, by supporting the use of streams of streams, first-class functions, and higher-order operations. We also support many temporal operations beyond streams, such as terminatable streams, events, and even resumptions with first-class schedulers. Furthermore, our language supports an efficient implementation strategy permitting us to eagerly deallocate old values and statically rule out spacetime leaks, a notorious source of inefficiency in reactive programs. Furthermore, these memory guarantees are achieved without the use of a complex substructural type discipline.We also show that our implementation strategy of eager deallocation is safe, by showing the soundness of our type system with a novel step-indexed Kripke logical relation.},
+booktitle = {Proceedings of the 18th ACM SIGPLAN International Conference on Functional Programming},
+pages = {221–232},
+numpages = {12},
+keywords = {temporal logic, kripke logical relations, guarded recursion, functional reactive programming, dataflow, comonads, capabilities},
+location = {Boston, Massachusetts, USA},
+series = {ICFP '13}
+}
+
+@article{neel_krishnaswami_2013,
+author = {Krishnaswami, Neelakantan R.},
+title = {Higher-order functional reactive programming without spacetime leaks},
+year = {2013},
+issue_date = {September 2013},
+publisher = {Association for Computing Machinery},
+address = {New York, NY, USA},
+volume = {48},
+number = {9},
+issn = {0362-1340},
+url = {https://doi.org/10.1145/2544174.2500588},
+doi = {10.1145/2544174.2500588},
+abstract = {Functional reactive programming (FRP) is an elegant approach to declaratively specify reactive systems. However, the powerful abstractions of FRP have historically made it difficult to predict and control the resource usage of programs written in this style.In this paper, we give a new language for higher-order reactive programming. Our language generalizes and simplifies prior type systems for reactive programming, by supporting the use of streams of streams, first-class functions, and higher-order operations. We also support many temporal operations beyond streams, such as terminatable streams, events, and even resumptions with first-class schedulers. Furthermore, our language supports an efficient implementation strategy permitting us to eagerly deallocate old values and statically rule out spacetime leaks, a notorious source of inefficiency in reactive programs. Furthermore, these memory guarantees are achieved without the use of a complex substructural type discipline.We also show that our implementation strategy of eager deallocation is safe, by showing the soundness of our type system with a novel step-indexed Kripke logical relation.},
+journal = {SIGPLAN Not.},
+month = sep,
+pages = {221–232},
+numpages = {12},
+keywords = {temporal logic, kripke logical relations, guarded recursion, functional reactive programming, dataflow, comonads, capabilities}
+}
+

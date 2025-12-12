@@ -44,17 +44,29 @@ With the new semantics signals are mutable references:
 \[
   \textbf{type} \text{ Sig } a = \text{ref } (a \times \bigcirc (\text{Sig } a))
 \]
-A value of type $\text{Sig }a$ is thus a mutable reference to a pair $(u,v)$, where $u$ is the current value (the head) and $v$ is a delayed computation (the tail) used to update the reference in the next time step. Importantly, users of Rizzo do not update this reference themselves, instead the reference is updated by evaluating the tail $v$. The process of updating signals is defined by the \textit{reactive semantics} (explained in section \ref{section:rizzo_semantics}). 
+A value of type $\text{Sig }a$ is thus a mutable reference to a pair $(u,v)$, where $u$ is the current value (the head) and $v$ is a delayed computation (the tail) used to update the reference in the next time step. Importantly, users of Rizzo do not update the reference themselves. It is instead updated by evaluating the tail $v$ as part of the \textit{reactive semantics} (see Section~\ref{section:rizzo_semantics}).
 
-\todo{maybe split to 2 different examples? to put more focus on being allowed to use head xs}
-
-The mutable references in the semantics of signals is what allows Rizzo to forego the $\square$ (stable) modality. Since signals are updated in place, it is impossible for Rizzo programs to reference the same signal from different time steps. Without the stable modality we can redefine $map : (a \rightarrow b) \rightarrow \text{Sig }a \rightarrow \text{Sig }b$ and use it to also redefine the $mult2$ function:
+The mutable references in the semantics of signals is what allows Rizzo to forego the $\square$ (stable) modality. Since signals are updated in place, it is impossible for Rizzo programs to reference the same signal from different time steps. Therefore, we can redefine $map : (a \rightarrow b) \rightarrow \text{Sig }a \rightarrow \text{Sig }b$ without the stable modality, allowing us to redefine $mult2$ as:
 \[
-  mult2 \; xs = map \; (\lambda x. x + head \; xs) \; xs
+  mult2 \; xs = map \; (\lambda x. x * 2) \; xs
 \]
-Notice, the new definition of $map$ permits a reference to $xs$ inside the lambda. This is safe, because $xs$ is a mutable reference and therefore does not leak space. Were it not for changed semantics, this definition of $mult2$ would both leak space, by referencing the \textit{old} values of $xs$, and fail to type check given the previous definition of $map$. The type of the lambda would not be stable, since it references $xs : \text{Sig }A$.
+Notice, that the use of $box$ is gone and the use of $map$ has taken its familiar form.
 
-%Er der mere at sige om Rizzo? Hvorfor er Rizzo interessant?
+%\todo{maybe split to 2 different examples? to put more focus on being allowed to use head xs}
+
+% TODO: we could also go with addHead
+% $addHead : \text{Sig }A \rightarrow \text{Sig }A$ that adds the head of a signal at each time step: 
+% \[
+% addHead \; xs = map \; (\lambda x. x + head \; xs) xs
+% \]
+Furthermore, removing the stable modality also allows a bigger space well-typed programs. Consider the function $sample : \text{Sig }A \rightarrow \text{Sig }B \rightarrow \text{Sig }(A \times B)$ defined as:
+\[
+  sample \; xs \; ys = map \; (\lambda x. \langle x , head \; ys \rangle ) \; xs
+\]
+The $sample$ function takes two signals $xs$ and $ys$ to create a new signal that samples the head of $ys$ whenever $xs$ produces a value $x$ and then produces a pair $(x, head \; ys)$. This program would fail to type-check with the previous defintion of $map$, since the lambda's type is not stable as it references $ys$ and this reference would cause space leaks as the program is required to retain old values of $ys$. However, with the semantics of Rizzo, it is safe for the lambda to reference $ys$ directly. 
+
+% WE HAD TO SAY "OH BTW, signals are asynchronous somewhere"
+The $sample$ function is particularly interesting because signals in Rizzo are \emph{asynchronous}; different signals may not necessarily produce values simultaneously. Where it can be used to read data from a signal based on some event happening, as demonstrated in Section~\ref{section:rizzo_example}.
 
 \subsection{Contributions}
 

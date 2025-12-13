@@ -90,6 +90,13 @@ From port: Hello again
 \end{verbatim}
 
 This was quite a simple program, but to show some more of Rizzo's capabilities, we can extend the program a bit further. Good examples of signal combinators are \texttt{filter} and \texttt{sample}.
+The data flow for the extended program can be visualized in Figure~\ref{fig:rizzo_flow}. The inputs are represented by circles at the top, the signal combinators by boxes in the middle, and the outputs by diamonds at the bottom. The container in the middle represents the user space where users can manipulate signals using Rizzo's signal combinators, while the area outside the container represents the Rizzo runtime that handles input channels and output signals.
+
+\begin{figure}[h]
+  \centering
+  \includegraphics[width=0.8\textwidth]{images/RizzoFlow.png}
+  \caption{Data flow in Rizzo: from channels through signals to output.}\label{fig:rizzo_flow}
+\end{figure}
 
 The \texttt{filter} function takes a predicate function and a signal as input, and produces a new signal that only contains values that satisfy the predicate. 
 
@@ -190,9 +197,6 @@ Internaly, the channel type is an index that identifies the channel. We incrimen
 \begin{lstlisting}[caption={The channel type definition},label={listing:channel_type}]
 type 'a channel = Index of int
 \end{lstlisting}
-
-
-\todo{associate this with a diagram of some kind that shows the flow of data from channels -to- signals -to- output signals.}
 
 
 \subsection{The delayOnce type}

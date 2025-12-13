@@ -1,4 +1,4 @@
-\section{Using Rizzo} \label{using_rizzo}
+\section{Using Rizzo}\label{using_rizzo}
 %user space, examples of how to use it?
 %Input channels : Clock signals, console signal, 
 %Output "channels":
@@ -90,6 +90,13 @@ From port: Hello again
 \end{verbatim}
 
 This was quite a simple program, but to show some more of Rizzo's capabilities, we can extend the program a bit further. Good examples of signal combinators are \texttt{filter} and \texttt{sample}.
+The data flow for the extended program is visualized in Figure~\ref{fig:rizzo_flow}.
+
+\begin{figure}[ht]
+  \centering
+  \includegraphics[width=0.8\textwidth]{images/RizzoFlow.png}
+  \caption{Data flow in Rizzo: from channels (circles) through signal combinators (boxes) to outputs (diamonds). The container represents user space, while the surrounding area represents the Rizzo runtime.}\label{fig:rizzo_flow}
+\end{figure}
 
 The \texttt{filter} function takes a predicate function and a signal as input, and produces a new signal that only contains values that satisfy the predicate. 
 

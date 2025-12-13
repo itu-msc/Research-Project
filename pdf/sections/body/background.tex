@@ -4,6 +4,7 @@
 %Output "channels":
 
 This section will give an overview of how Rizzo can be used to implement functional reactive programs. We will go through how to create input signals, use signal combinators to manipulate the signals, and how to output the signals. We then combine the three, and show an example program that uses Rizzo to implement a simple interactive application.
+We then finish the section with a list of the most notable functions and types provided by Rizzo.
 
 \subsection{Inputs}
 Input sources in Rizzo are called channels. There can theoretically be implemented an input channel for any kind of input source, but currently Rizzo only has a console, clock and port input implementation.
@@ -28,79 +29,6 @@ A brief overview of the signal combinators is given below:
 
 \subsection{Outputs}
 Rizzo provides output functions that can be used to output signals to various output sources. Currently Rizzo has output functions for console and network port outputs. Like the signal combinators there can be two variants, one for regular signals and one for later signals. Unlike the signal combinators, the output functions do not produce a new signal, but instead have the side effect of outputting the signal values to the output source.
-
-\subsection{Functions and types}
-
-Rizzo provides a number of functions and types that can be used to work with signals. Some of the most notable functions and types are:
-
-\todo{shorten and remove types that are not interesting}
-
-Main types:
-\begin{lstlisting}
-type 'a channel = Index of int
-
-type _ later =
-  | Never
-  | App : ('a -> 'b) delayOnce * 'a later -> 'b later
-  | Sync : 'a later * 'b later -> ('a, 'b) sync later
-  | Wait : 'a channel -> 'a later
-  | Trig : 'a option signal -> 'a later
-  | Tail : 'a signal -> 'a signal later
-and 'a signal_data = { 
-  id: int; 
-  mutable head: 'a;
-  mutable tail: 'a signal later;
-  mutable updated: bool
-}
-and 'a signal = SignalID of 'a signal_data
-\end{lstlisting}
-
-Notable channel and signal functions:
-\begin{lstlisting}
-val new_channel : unit -> 'a channel
-val mkSig : 'a later -> 'a signal later
-val mkSig_of_channel : 'a channel -> 'a signal later
-
-val clock_channel : float -> float channel * (unit -> unit)
-val clock_signal : float -> float signal * (unit -> unit)
-  
-val never : 'a later
-val delay : (unit -> 'a) -> 'a delayOnce
-val adv : 'a delayOnce -> 'a
-val app : ('a -> 'b) delayOnce -> 'a later -> 'b later
-val sync: 'a later -> 'b later -> ('a, 'b) sync later
-val wait : 'a channel -> 'a later
-val trig : 'a option signal -> 'a later
-val tail : 'a signal -> 'a signal later
-val ostar : ('a -> 'b) delayOnce -> 'a delayOnce -> 'b delayOnce
-val fa : ('a -> 'b) -> 'a later -> 'b later
-val (<<|) : ('a -> 'b) -> 'a later -> 'b later
-val (|>>) : 'a later -> ('a -> 'b) -> 'b later
-
-val head : 'a signal -> 'a
-val map : ('a -> 'b) -> 'a signal -> 'b signal
-val mapD : ('a -> 'b) -> 'a signal later -> 'b signal later
-val zip : 'a signal -> 'b signal -> ('a * 'b) signal
-val switch : 'a signal -> 'a signal later -> 'a signal
-val switchS : 'a signal -> ('a -> 'a signal) later -> 'a signal
-val switchR : 'a signal -> (('a -> 'a signal) signal) later -> 'a signal
-val jump : ('a -> 'a signal option) -> 'a signal -> 'a signal
-val sample : 'a signal -> 'b signal -> ('a * 'b) signal
-val scan : ('b -> 'a -> 'b) -> 'b -> 'a signal -> 'b signal
-val scanD : ('a -> 'b -> 'a) -> 'a -> 'b signal later -> 'a signal later
-val interleave  : ('a -> 'a -> 'a) -> 'a signal -> 'a signal -> 'a signal
-val filter : ('a -> bool) -> 'a signal later -> 'a signal later
-val filter_map : ('a -> 'b option) -> 'a signal later -> 'b signal later
-val triggerD : ('a -> 'b -> 'c) -> 'a signal later -> 'b signal -> 'c signal later
-val map2 : ('a -> 'b -> 'c) -> 'a signal -> 'b signal -> 'c signal
-
-val port_send_outputD : Unix.inet_addr -> int -> string signal later -> unit
-
-val console_output : string signal -> unit
-val console_outputD: string signal later -> unit
-val set_quit : 'a signal later -> unit
-val start_event_loop : unit -> unit
-\end{lstlisting}
 
 \subsection{Example program}\label{section:rizzo_example}
 
@@ -198,6 +126,52 @@ This will now output the time in seconds since the program started whenever the 
 
 The full example program can be seen in Appendix~\ref{appendix:extended_example_program}.
 
+\subsection{Functions and types}
+
+For the reader's convenience while reading, this subsection can be used as a reference to understand the channel and signal APIs provided by Rizzo. Below is a list of the most notable functions provided by Rizzo. The channel and signal type definitions can be found in Section~\ref{section:implementing_rizzo} as Listings~\ref{listing:channel_type} and~\ref{listing:signal_type} respectively.
+
+Notable channel and signal functions:
+\begin{lstlisting}[caption={Notable channel and signal functions},label={listing:notable_signal_and_channel_functions},basicstyle=\linespread{0.8}\ttfamily\small]
+(* Channel functions *)
+val new_channel : unit -> 'a channel
+val clock_channel : float -> float channel * (unit -> unit)
+
+val never : 'a later
+val delay : (unit -> 'a) -> 'a delayOnce
+val adv : 'a delayOnce -> 'a
+val app : ('a -> 'b) delayOnce -> 'a later -> 'b later
+val sync: 'a later -> 'b later -> ('a, 'b) sync later
+val wait : 'a channel -> 'a later
+val trig : 'a option signal -> 'a later
+val tail : 'a signal -> 'a signal later
+val (|>>) : 'a later -> ('a -> 'b) -> 'b later
+
+(* Signal functions *)
+val mkSig : 'a later -> 'a signal later
+val mkSig_of_channel : 'a channel -> 'a signal later
+val clock_signal : float -> float signal * (unit -> unit)
+
+val head : 'a signal -> 'a
+val map : ('a -> 'b) -> 'a signal -> 'b signal
+val zip : 'a signal -> 'b signal -> ('a * 'b) signal
+val switch : 'a signal -> 'a signal later -> 'a signal
+val switchS : 'a signal -> ('a -> 'a signal) later -> 'a signal
+val switchR : 'a signal -> (('a -> 'a signal) signal) later -> 'a signal
+val sample : 'a signal -> 'b signal -> ('a * 'b) signal
+val scan : ('b -> 'a -> 'b) -> 'b -> 'a signal -> 'b signal
+val interleave  : ('a -> 'a -> 'a) -> 'a signal -> 'a signal -> 'a signal
+val filter : ('a -> bool) -> 'a signal later -> 'a signal later
+val filter_map : ('a -> 'b option) -> 'a signal later -> 'b signal later
+val triggerL : ('a -> 'b -> 'c) -> 'a signal later -> 'b signal -> 'c signal later
+
+(* Output functions *)
+val console_output : string signal -> unit
+val console_outputL: string signal later -> unit
+val port_outputL : Unix.inet_addr -> int -> string signal later -> unit
+val set_quit : 'a signal later -> unit
+val start_event_loop : unit -> unit
+\end{lstlisting}
+
 \section{Implementing Rizzo} \label{section:implementing_rizzo}
 
 Rizzo is implemented in \texttt{OCaml}, because it has weak references, generalized algebraic data types (GADTs) and a strong type system. We could potentially have better performance if we chose a language with reference counting, but OCaml is a good trade-off between performance and expressiveness.
@@ -208,12 +182,15 @@ Most of the implementation of Rizzo is contained in the \texttt{internals} modul
 \todo{add stuff about space/time leaks}
 
 \subsection{Channels}
-\todo{Make sure that we have explained what clocks and ticks are before this.}
 Channels are input sources to Rizzo programs, they are controlled by the Rizzo runtime, and provided to the user through the Rizzo Channel module.
-Channels produce input events at discrete time steps, and 
+Channels produce input events at discrete time steps. All channels in Rizzo share a single global clock, where each tick of the clock represents a discrete time step at which channels may produce input events.
 
-, and can be considered to be associated with a clock. Each tick of the channel's clock represents an input event on the channel.
-\todo{There is only one clock}
+Internaly, the channel type is an index that identifies the channel. We incriment the index for each new channel created, so each channel has a unique index. But from the user's perspective, channels are opaque types that can only be created using the Rizzo Channel module.
+
+\begin{lstlisting}[caption={The channel type definition},label={listing:channel_type}]
+type 'a channel = Index of int
+\end{lstlisting}
+
 
 \todo{associate this with a diagram of some kind that shows the flow of data from channels -to- signals -to- output signals.}
 
@@ -229,13 +206,13 @@ The Later type is used to represent values that will be available at a later tim
 
 We can for example make a later signal from a filter that never passes any values through, resulting in a later signal that never produces any values.
 
-\begin{lstlisting}
+\begin{lstlisting}[caption={Creating a later signal that never produces any values},label={listing:never_signal}]
 let never_signal = filterL (fun _ -> false) some_input_signal in
 \end{lstlisting}
 
 The internal type signature of Later is a GADT
 
-\begin{lstlisting}
+\begin{lstlisting}[caption={The later type definition},label={listing:later_type}]
 type _ later =
   | Never
   | App : ('a -> 'b) delayOnce * 'a later -> 'b later   (* this is the O>*)
@@ -250,7 +227,20 @@ type _ later =
 Signals are the core concept in Rizzo, and represent time-varying values. Signals can be constructed from channels, or from other signals using signal combinators.
 Signals are implemented as an infinite sequence, with the head being the current value of the signal, and the tail being a new later signal of the same type.
 
-For a reader unfamiliar with FRP, the signals can be considered to be pipes where values flow through the network and ends up at output signals.
+\begin{lstlisting}[caption={The signal type definition},label={listing:signal_type}]
+type _ later =  
+...
+and 'a signal_data = { 
+  id: int; 
+  mutable head: 'a;
+  mutable tail: 'a signal later;
+  mutable updated: bool
+}
+
+and 'a signal = SignalID of 'a signal_data
+\end{lstlisting}
+
+For a reader unfamiliar with FRP, signals can be considered to be pipes where values flow through the network and ends up at output signals.
 
 
 % \clearpage

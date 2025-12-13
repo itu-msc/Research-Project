@@ -18,11 +18,8 @@ type 'a channel = Index of int
 \end{lstlisting}
 
 
-\todo{associate this with a diagram of some kind that shows the flow of data from channels -to- signals -to- output signals.}
-
-
 \subsubsection{The delayOnce type}
-\todo{I need a bit of help here, what exactly is it used for exept for helping us with not evaluating values and functions too early? ie given we dont have call-by-name in ocaml, this is just a thunk wrapper right?}
+\todo{I need a bit of help here, what exactly is it used for exept for helping us with not evaluating values and functions too early? ie given we dont have call-by-name in ocaml, we need a thunk wrapper right, which is this?}
 The delayOnce type is used to represent values that will be available at the next time step. This is useful when we have a function that we want to pass, but we don't want to evaluate the function until the next time step. 
 
 delayOnce is implemented as a wrapper around a thunk, which is a function that takes no arguments and returns a value. The thunk is only evaluated when the value is needed, which is at the next time step.

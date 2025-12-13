@@ -16,14 +16,14 @@ In our library, the `now' and `earlier' heaps are implemented as a single doubly
 However, since we are creating an embedded language, it is necessary to work within the OCaml memory model and that means co-existing with the OCaml garbage collector. If our heap were to directly hold reference to signals and their data, then it would prevent the garbage collector from ever erasing any unused signal. Therefore, we must utilize weak references, which are pointers to values that the garbage collector is allowed to erase whenever they are no longer in use elsewhere \todo{cite ocaml weak(?)}. This greatly simplifies the memory management of our library, by requiring only that we remove entries for which the weak reference is no longer valid. However, it also means that we have no control on when unused signals are erased from memory and as such they may persist in the signal heap for longer than expected. This is especially problematic for any signals with side effects. 
 Consider the Rizzo program in listing~\ref{listing:heap_side_effect}. The program defines a signal of strings, the tail of which has a side effect, namely printing $[\text{side-effect}]$, and the program then immediately ignores this signal. Note, the infix operator $(@\text{:})$ creates a new signal allocated on the heap exactly like $(\text{::})$ for lists. It would be reasonable to expect the program to do nothing but infinitely hang in the event loop. However, when the program is run and as the first value is produced on the $console\_input$ channel, the program prints $[\text{side-effect}]$. This happens because the garbage collector has yet to run and the ignored signal still exists in the heap, as a `ghost', and is thus updated every time console produces a value.
 
-\begin{lstlisting}[caption={A Rizzo programs that produces unexpected output of a signal with side effects.}, label={listing:heap_side_effect}]
+\begin{lstlisting}[caption={Rizzo program with unexpected side effects}, label={listing:heap_side_effect}]
 let console = mkSig_of_channel (console_input ()) in
 let id_with_side_effect = 
     fun x -> print_endline "[side-effect]"; x in
 ignore ("initial" @: mapL id_with_side_effect console);
 start_event_loop ()
-
 \end{lstlisting}
+
 This problem of `ghost' signals in the heap would disappear in a language with reference counting rather than a garbage-collected runtime like that of OCaml. With reference counting, the signal in listing~\ref{listing:heap_side_effect} would be immediately discarded after ignore, preventing unexpected artifacts of any side-effects.
 
 %Concrete implementation, why a linked list? Why weak reference etc. Also the "alloc" to create signals.

@@ -35,10 +35,10 @@ However, this elegant solution comes at the cost of added complexity to the type
 \[
   mult2 \; xs = map \; (box \;(\lambda x.\ x * 2)) \; xs
 \]
-Observe in particular the use of $box$ (the introduction form for $\square$) that is required fit the stable modality of $map$.
+Observe in particular the use of $box$ (the introduction form for $\square$) that is required to fit the stable modality of $map$.
 
 \subsection{Rizzo}
-Rizzo\cite{rizzo_modal_2025} is a FRP language that simplifies the modal type system while still guaranteeing productivity, causality, and the absence of space leaks. It achieves this by changing the semantics of signals. 
+Rizzo\cite{rizzo_modal_2025} is a FRP language that simplifies the modal type system while still guarantees productivity, causality, and the absence of space leaks. It achieves this by changing the semantics of signals. 
 
 With the new semantics signals are mutable references: 
 \[
@@ -59,14 +59,16 @@ Notice, that the use of $box$ is gone and the use of $map$ has taken its familia
 % \[
 % addHead \; xs = map \; (\lambda x. x + head \; xs) xs
 % \]
-Furthermore, removing the stable modality also allows a bigger space well-typed programs. Consider the function $sample : \text{Sig }A \rightarrow \text{Sig }B \rightarrow \text{Sig }(A \times B)$ defined as:
+Furthermore, removing the stable modality also allows a bigger space of well-typed programs. Consider the function $sample : \text{Sig }A \rightarrow \text{Sig }B \rightarrow \text{Sig }(A \times B)$ defined as:
 \[
   sample \; xs \; ys = map \; (\lambda x. \langle x , head \; ys \rangle ) \; xs
 \]
 The $sample$ function takes two signals $xs$ and $ys$ to create a new signal that samples the head of $ys$ whenever $xs$ produces a value $x$ and then produces a pair $(x, head \; ys)$. This program would fail to type-check with the previous defintion of $map$, since the lambda's type is not stable as it references $ys$ and this reference would cause a space leak as old values of $ys$ must be kept in memory. However, with the semantics of Rizzo, it is safe for the lambda to reference $ys$ directly. 
 
 % WE HAD TO SAY "OH BTW, signals are asynchronous somewhere"
-The $sample$ function is particularly interesting because signals in Rizzo are \emph{asynchronous}; different signals are not necessarily updated at the same time. Where it can be used to read data from a signal based on some event happening, as demonstrated in Section~\ref{section:rizzo_example}.
+% The $sample$ function is particularly interesting because signals in Rizzo are \emph{asynchronous}; different signals are not necessarily updated at the same time. Where it can be used to read data from a signal based on some event happening, as demonstrated in Section~\ref{section:rizzo_example}.
+Rizzo is also asynchronous, meaning that different signals are not updated at the same time. Rizzo allows each input source to produce events at its own pace, while Rizzo's runtime ensures that only one event is processed at a time. This asynchronous nature is what makes $sample$ well-typed without the stable modality. Since signals are updated independently, there is no risk of retaining old values across time steps. An example of using $sample$ to read data from one signal based on an event occurring on another signal is demonstrated in Section~\ref{section:rizzo_example}.
+
 
 \subsection{Contributions}
 
@@ -75,14 +77,15 @@ as an embedded domain-specific language. Our contributions are:
 
 \begin{itemize}
   \item We design and implement a small Rizzo-style FRP library in OCaml,
-    closely following the operational semantics of \cite{rizzo_modal_2025}.
+    closely following the operational semantics described in \citetitle{rizzo_modal_2025}.
     Section~\ref{using_rizzo} illustrates how to use this library to build
     simple reactive programs.
   \item We discuss the practical challenges of implementing Rizzo as an
     embedded language, in particular the interaction between Rizzo's reactive
     semantics and OCaml's own side effects, evaluation strategy, and memory
     model.
-  \item We identify several limitations of the embedding (e.g. \todo{side effects, the memory model, \dots}) and
+  \item We identify several limitations of the embedding 
+  (e.g. \todo{side effects, the memory model, \dots should we even have this here?}) and
     outline possible extensions or language support that would make Rizzo-style
     FRP more convenient to use in a mainstream setting.
 \end{itemize}

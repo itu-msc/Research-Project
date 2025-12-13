@@ -93,10 +93,10 @@ let delete (node: node) =
   | _ -> failwith "Heap invariant broken: node to delete has None prev or next"
 
 let update : type a. node -> a -> a signal later -> unit =
-  fun n s t -> 
+  fun n h t -> 
     match node_get_data n with
     | None -> () (* gc'ed *)
-    | Some d -> d.head <- s; d.tail <- t
+    | Some d -> d.head <- h; d.tail <- t
 
 let find (id: int) = 
   let rec aux n =
@@ -219,11 +219,14 @@ let step_cursor : 'a channel -> 'a -> unit = fun k v ->
 
 let step k v : unit = 
   Mutex.lock mutex;
-  let rec inner : unit -> unit = fun () ->
-    if Option.is_none heap.cursor.next then ()
-    else let () = step_cursor k v in inner () 
-  in 
+  let rec aux : unit -> unit = fun () ->
+    match heap.cursor.next with
+    | None -> ()
+    | Some _ ->
+      step_cursor k v;
+      aux ()
+  in
   reset_cursor ();
-  inner ();
+  aux ();
   Gc.full_major ();
-  Mutex.unlock mutex;
+  Mutex.unlock mutex

@@ -78,12 +78,15 @@ It is sufficient with a single mutex for the entire heap, as the semantics of Ri
 \begin{lstlisting}[caption={Implementation of step semantics. Step takes a channel $k$, the produced value $v$, and updates the heap.}, label={listing:rizzo_step}]
 let step k v : unit = 
   Mutex.lock mutex;
-  let rec inner : unit -> unit = fun () ->
-    if Option.is_none heap.cursor.next then ()
-    else let () = step_cursor k v in inner () 
+  let rec aux : unit -> unit = fun () ->
+    match heap.cursor.next with
+    | None -> ()
+    | Some _ ->
+      step_cursor k v;
+      aux () 
   in 
   reset_cursor ();
-  inner ();
+  aux ();
   Gc.full_major ();
   Mutex.unlock mutex;
 \end{lstlisting}

@@ -49,6 +49,19 @@ type _ later =
 \subsubsection{Signals}
 Signals are the core concept in Rizzo, and represent time-varying values. Signals can be constructed from channels, or from other signals using signal combinators.
 Signals are implemented as an infinite sequence, with the head being the current value of the signal, and the tail being a new later signal of the same type.
+A user might so far have imagined the signal type to be defined as:
+
+\begin{lstlisting}[caption={A naive signal type definition},label={listing:naive_signal_type}]
+type 'a signal_simple = Sig of ('a * 'a signal_simple later) ref
+\end{lstlisting}
+
+Implimentation wise the signal type not as simple as we have described it so far though.
+We also need to keep track of the signal's unique id and whether it has been updated in the current time step. 
+This is necessary for the Rizzo runtime to be able to manage the signals and ensure that they are updated correctly.
+Given the old part of the signal also must not exist, then we can make the head and tail mutable, so they can be updated in place. This improves performance and reduces memory usage.
+% Signals new redundant signals might still be created during signal combinator operations, but the old signals will be garbage collected by OCaml's garbage collector when they are no longer needed. So over time the memory usage will not grow by the tails of the signals.
+
+The internal type signature of signals is therefore defined as:
 
 \begin{lstlisting}[caption={The signal type definition},label={listing:signal_type}]
 type _ later =  
@@ -63,9 +76,5 @@ and 'a signal_data = {
 and 'a signal = SignalID of 'a signal_data
 \end{lstlisting}
 
-For a reader unfamiliar with FRP, signals can be considered to be pipes where values flow through the network and ends up at output signals.
+% For a reader unfamiliar with FRP, signals can be considered to be pipes where values flow through the network and ends up at output signals.
 
-
-% \clearpage
-
-% \subsection{A simpler processor model}\label{processor-model}

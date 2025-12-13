@@ -1,11 +1,5 @@
 \subsection{Implementing the types of Rizzo}\label{section:rizzo_types}
-
-Rizzo is implemented in \texttt{OCaml}, because it has weak references, generalized algebraic data types (GADTs) and a strong type system. We could potentially have better performance if we chose a language with reference counting, but OCaml is a good trade-off between performance and expressiveness.
-We have implemented Rizzo as a library, where we have drawn a line between the core implementation and the user space. The intention with making this distinction is \texttt{if users follow our APIs}, then they will get the safety guarantees that Rizzo was designed for. If they don't, they could potentially break the guarantees Rizzo provides, by for example introducing side effects. As an OCaml library we cant guarantee that users will not introduce side effects, so we have to trust that they will follow the APIs.
-
-Most of the implementation of Rizzo is contained in the \texttt{internals} module, which contains the core implementation of Rizzo. The \texttt{types} module contains the type definitions and type constructors used in Rizzo, and the \texttt{signal} and \texttt{channel} modules contain the signal combinators and channel implementations respectively. We have not hidden this implementation behind an abstract interface, since we want users to be able to extend Rizzo with new functionality if they want to. So input channels can for example be extended by users to support new input sources.
-
-\todo{add stuff about space/time leaks}
+Having already used the primitive types of Rizzo, this section formalises their meaning and explains how they are captured in OCaml.
 
 \subsubsection{Channels}
 Channels are input sources to Rizzo programs, they are controlled by the Rizzo runtime, and provided to the user through the Rizzo Channel module.
@@ -24,7 +18,7 @@ The delayOnce type is used to represent values that will be available at the nex
 
 delayOnce is implemented as a wrapper around a thunk, which is a function that takes no arguments and returns a value. The thunk is only evaluated when the value is needed, which is at the next time step.
 
-\subsubsection{The Later type}
+\subsubsection{The Later type} \label{section:rizzo_later}
 The Later type is used to represent values that will be available at a later time step. In contrast to delayOnce, the Later type does not guarantee that the value will be available at the next time step, but only at some later time step. For example, using a filter on a signal will produce a signal that does not guarantee a value at the next time step, since the filter may not pass any values through.
 
 We can for example make a later signal from a filter that never passes any values through, resulting in a later signal that never produces any values.
@@ -52,16 +46,14 @@ Signals are implemented as an infinite sequence, with the head being the current
 A user might so far have imagined the signal type to be defined as:
 
 \begin{lstlisting}[caption={A naive signal type definition},label={listing:naive_signal_type}]
-type 'a signal_simple = Sig of ('a * 'a signal_simple later) ref
+type 'a signal = Sig of ('a * 'a signal later) ref
 \end{lstlisting}
 
-Implimentation wise the signal type not as simple as we have described it so far though.
-We also need to keep track of the signal's unique id and whether it has been updated in the current time step. 
-This is necessary for the Rizzo runtime to be able to manage the signals and ensure that they are updated correctly.
-Given the old part of the signal also must not exist, then we can make the head and tail mutable, so they can be updated in place. This improves performance and reduces memory usage.
-% Signals new redundant signals might still be created during signal combinator operations, but the old signals will be garbage collected by OCaml's garbage collector when they are no longer needed. So over time the memory usage will not grow by the tails of the signals.
+However, in the actual implementation signals must carry some additional information, a unique identifier and a flag indicating whether it has been updated. 
+These fields are used by the runtime to manage signals, as explained in Section~\ref{section:rizzo_core}. 
 
-The internal type signature of signals is therefore defined as:
+The final internal representation of signals is shown in Listing~\ref{listing:signal_type}, where the record \texttt{signal\_data} has mutable \texttt{head} and \texttt{tail} fields, reflecting that signals are mutable references. 
+As a final note, in the public interface (\texttt{Rizzo.Types}) the signal type is left opaque.
 
 \begin{lstlisting}[caption={The signal type definition},label={listing:signal_type}]
 type _ later =  

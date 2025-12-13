@@ -1,0 +1,16 @@
+\section{Implementing Rizzo}\label{section:implementing_rizzo}
+
+Rizzo is implemented in OCaml, because it has generalized algebraic data types (GADTs) to represent the \texttt{later} modality (Section~\ref{section:rizzo_later}), weak references for the heap representation (Section~\ref{section:rizzo_heap}), and a strong type system.
+
+We have structured Rizzo as a library with a separation between the runtime implementation and the user space. The runtime is found in the \texttt{Rizzo.Internals} module while user-facing interface is provided through \texttt{Rizzo.Types}, \texttt{Rizzo.Signal}, and \texttt{Rizzo.Channel}. All of these are visible to users of the library. This separation allows users who limit themselves to the public interface to obtain the safety guarantees of Rizzo's design. At the same time, it allows users to extend the library with new functionality, such as new input sources, when needed.
+
+As an OCaml library we cannot prevent users from abusing the interface or introducing arbitrary side effects. We note, that safety guarantees only hold when users following the public interface.
+
+\todo{add stuff about space/time leaks}
+
+%tobias - I tried to capture all this - but idk if I succeeded haha
+
+% We implement Rizzo as a library, where we have drawn a line between the core implementation and the user space. The intention with making this distinction is \texttt{if users follow our APIs}, then they will get the safety guarantees that Rizzo was designed for. If they don't, they could potentially break the guarantees Rizzo provides, by for example introducing side effects. As an OCaml library we cant guarantee that users will not introduce side effects, so we have to trust that they will follow the APIs.
+
+% Most of the implementation of Rizzo is contained in the \texttt{internals} module, which contains the core implementation of Rizzo. The \texttt{types} module contains the type definitions and type constructors used in Rizzo, and the \texttt{signal} and \texttt{channel} modules contain the signal combinators and channel implementations respectively. We have not hidden this implementation behind an abstract interface, since we want users to be able to extend Rizzo with new functionality if they want to. So input channels can for example be extended by users to support new input sources.
+

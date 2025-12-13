@@ -1,11 +1,12 @@
-\subsection{Rizzo Core private methods}
+\subsection{Executing Rizzo programs}\label{section:rizzo_core}
+
 \todo{something to fix the flow and shit now that we have merged it into implementing Rizzo}
 %The core, whatever "glues" the concepts together, making it a language
 To give executable meaning to these constructions, \texttt{Signal, delayOnce, later}, Rizzo defines operational semantics\cite{rizzo_modal_2025}. The operational semantics of Rizzo are split into two parts. The first part is the evaluation semantics which describe how terms are computed. The second part, the reactive semantics, describe how signals and later values \textit{react} to input over time. Since our implementation of Rizzo is an embedded language, the evaluation semantics are provided by OCaml. Therefore, this section will primarily focus on the reactive semantics and the other aspects necessary to make Rizzo \textit{reactive}.
 
 % You cannot have a headless signal 
 %the type and how to construct these
-\subsection{The heap}\label{section:rizzo_heap}
+\subsubsection{The heap}\label{section:rizzo_heap}
 %Conceptually, how the heap should work
 In Rizzo signals are stored in a specialized heap. This heap is divided in two: Namely, the `now' heap $\eta_n$ and the `earlier' heap $\eta_e$. We say that signals in the `now' are considered \textit{up-to-date} and signals in the `earlier' heap are old, that is they belong to the past and must be \textit{advanced} before they can be used. Conceptually, a heap is a sequence of mappings $id \mapsto v\langle U \rangle w$, which map an identifier to the data of a signal. This data contains the head $v$ and tail $w$ of a signal alongside a flag $U$ that indicates whether the signal has been updated in the current time step. This flag plays an important for the reactive semantics described in Section~\ref{section:rizzo_semantics}. The heap provides a way to create fresh signals identifiers by using the function $\text{alloc} : A \rightarrow \text{later } A \rightarrow \text{Signal }A$.
 %Does this also include channels?
@@ -28,7 +29,7 @@ This problem of `ghost' signals in the heap would disappear in a language with r
 %Concrete implementation, why a linked list? Why weak reference etc. Also the "alloc" to create signals.
 
 
-\subsection{Reactive Rizzo}\label{section:rizzo_semantics}
+\subsubsection{Reactive Rizzo}\label{section:rizzo_semantics}
 %Stuff like step, advance, 
 In Rizzo time `ticks' whenever input is produced on any channel, we say the program enters a new \textit{time step}. This begins a process, described by the \textit{step semantics}, which brings all signals into this new time step by either updating or moving them. At a high level, this process first moves everything to the `earlier' heap. Then it traverses the entire heap, checking for each signal whether its tail has been affected by the new `tick' and if so, then we say the signal and its tail have \textit{ticked}. Ticked signals must be updated by advancing their tails to produce new values for head and tail, as described by the \textit{advance semantics}. Signals that have not ticked are moved into the new time step unchanged.
 
@@ -39,7 +40,7 @@ There is, however, a subtle but important interaction between this implementatio
 
 Clearly, an ever-growing heap is unacceptable but the duplication of side-effects is especially problematic because of the way outputs are implemented (see Section~\ref{section:rizzo_io}) as internal signals performing side-effects. As a result our implementation of the language semantics must clean up by removing duplicated signals. This is achieved by triggering a garbage-collection cycle as the last step of updating the heap. Had we instead chosen a host language with reference counting, this issue would never arise, as only the heap holds (weak) references to these duplicate signals, so they would be erased immediately.
 
-\subsection{Advancing later values}\label{section:rizzo_advance}
+\subsubsection{Advancing later values}\label{section:rizzo_advance}
 %Mention that we are using GADTs and therefore we must in our implementation use "polymorphic recursion". In OCaml we must explicitly state the universally quantified type variable:
 % https://stackoverflow.com/a/69144537
 % https://ocaml.org/manual/5.4/polymorphism.html#s:polymorphic-recursion
@@ -66,7 +67,7 @@ let rec advance
     (...)
 \end{lstlisting}
 
-\subsection{Input, output, the event loop} \label{section:rizzo_io}
+\subsubsection{Input, output, the event loop} \label{section:rizzo_io}
 
 The event loop in Rizzo follows naturally from the reactive semantics \ref{section:rizzo_semantics}, whenever an input is produced on any channel \textit{something} must update the heap by invoking $step : \text{Channel } A \rightarrow A \rightarrow ()$ with the corresponding channel and the produced value. In our implementation, the responsible \textit{something} are separate threads. That is each of the primitive channels \texttt{console\_input, clock, port\_input}, create their own thread which is then responsible for handling input from the console, a timer, or a Unix socket respectively and calling $step$. Since processing events from the environment has been delegated to separate worker threads, the crucial function \texttt{start\_even\_loop} does nothing more than block the main thread to avoid pre-emptive termination.
 
@@ -87,7 +88,7 @@ let step k v : unit =
   Mutex.unlock mutex;
 \end{lstlisting}
 %The event loop. When a user is finished defining their signals, they \textit{start} the event loop. This blocks the main thread, so the program doesn't pre-emptively terminate. Also means that after this point all work is done entirely on input threads, which may cause `clock signal' (etc.) to go out of sync. Additionally, the threads (for input) are all started eagerly, meaning as soon they are invoked. So, while running the `setup', all the code before `start\_event\_loop', it may be that input is produced on channels before all signals have been declared. Meaning, for this brief period of execution it is possible that input is dropped, i.e. not given to some signals because they just do not exist in the heap yet!
-A consequence of this architecture is once a user commits to the event loop, all subsequent work is performed on the threads responsible for handling system input. This means any code for handling input (e.g. reading from a network socket) is delayed by the time it takes to update the heap. If the heap is large or complex, it may lead to timers going out of sync or systems becoming unresponsive.
+A consequence of this architecture is once a user commits to the event loop, all subsequent work is performed on the threads responsible for handling system input. This means any code for handling input (e.g.~reading from a network socket) is delayed by the time it takes to update the heap. If the heap is large or complex, it may lead to timers going out of sync or systems becoming unresponsive.
 Additionally, the threads of the primitive channels are all started eagerly. As a result, they may produce values while the program is still constructing signals, potentially causing any uninitialized signal to miss early input.
 
 %Output, when users registers a signal to output then we create a new signal that has the side effect of printing. To avoid GC eating our output signals, we have to store these in a global variable. 

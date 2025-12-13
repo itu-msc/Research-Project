@@ -1,0 +1,74 @@
+\subsection{Implementing the types of Rizzo}\label{section:rizzo_types}
+
+Rizzo is implemented in \texttt{OCaml}, because it has weak references, generalized algebraic data types (GADTs) and a strong type system. We could potentially have better performance if we chose a language with reference counting, but OCaml is a good trade-off between performance and expressiveness.
+We have implemented Rizzo as a library, where we have drawn a line between the core implementation and the user space. The intention with making this distinction is \texttt{if users follow our APIs}, then they will get the safety guarantees that Rizzo was designed for. If they don't, they could potentially break the guarantees Rizzo provides, by for example introducing side effects. As an OCaml library we cant guarantee that users will not introduce side effects, so we have to trust that they will follow the APIs.
+
+Most of the implementation of Rizzo is contained in the \texttt{internals} module, which contains the core implementation of Rizzo. The \texttt{types} module contains the type definitions and type constructors used in Rizzo, and the \texttt{signal} and \texttt{channel} modules contain the signal combinators and channel implementations respectively. We have not hidden this implementation behind an abstract interface, since we want users to be able to extend Rizzo with new functionality if they want to. So input channels can for example be extended by users to support new input sources.
+
+\todo{add stuff about space/time leaks}
+
+\subsubsection{Channels}
+Channels are input sources to Rizzo programs, they are controlled by the Rizzo runtime, and provided to the user through the Rizzo Channel module.
+Channels produce input events at discrete time steps. All channels in Rizzo share a single global clock, where each tick of the clock represents a discrete time step at which channels may produce input events.
+
+Internaly, the channel type is an index that identifies the channel. We incriment the index for each new channel created, so each channel has a unique index. But from the user's perspective, channels are opaque types that can only be created using the Rizzo Channel module.
+
+\begin{lstlisting}[caption={The channel type definition},label={listing:channel_type}]
+type 'a channel = Index of int
+\end{lstlisting}
+
+
+\todo{associate this with a diagram of some kind that shows the flow of data from channels -to- signals -to- output signals.}
+
+
+\subsubsection{The delayOnce type}
+\todo{I need a bit of help here, what exactly is it used for exept for helping us with not evaluating values and functions too early? ie given we dont have call-by-name in ocaml, this is just a thunk wrapper right?}
+The delayOnce type is used to represent values that will be available at the next time step. This is useful when we have a function that we want to pass, but we don't want to evaluate the function until the next time step. 
+
+delayOnce is implemented as a wrapper around a thunk, which is a function that takes no arguments and returns a value. The thunk is only evaluated when the value is needed, which is at the next time step.
+
+\subsubsection{The Later type}
+The Later type is used to represent values that will be available at a later time step. In contrast to delayOnce, the Later type does not guarantee that the value will be available at the next time step, but only at some later time step. For example, using a filter on a signal will produce a signal that does not guarantee a value at the next time step, since the filter may not pass any values through.
+
+We can for example make a later signal from a filter that never passes any values through, resulting in a later signal that never produces any values.
+
+\begin{lstlisting}[caption={Creating a later signal that never produces any values},label={listing:never_signal}]
+let never_signal = filterL (fun _ -> false) some_input_signal in
+\end{lstlisting}
+
+The internal type signature of Later is a GADT
+
+\begin{lstlisting}[caption={The later type definition},label={listing:later_type}]
+type _ later =
+  | Never
+  | App : ('a -> 'b) delayOnce * 'a later -> 'b later   (* this is the O>*)
+  | Sync : 'a later * 'b later -> ('a, 'b) sync later
+  | Wait : 'a channel -> 'a later
+  | Trig : 'a option signal -> 'a later
+  | Tail : 'a signal -> 'a signal later
+...
+\end{lstlisting}
+
+\subsubsection{Signals}
+Signals are the core concept in Rizzo, and represent time-varying values. Signals can be constructed from channels, or from other signals using signal combinators.
+Signals are implemented as an infinite sequence, with the head being the current value of the signal, and the tail being a new later signal of the same type.
+
+\begin{lstlisting}[caption={The signal type definition},label={listing:signal_type}]
+type _ later =  
+...
+and 'a signal_data = { 
+  id: int; 
+  mutable head: 'a;
+  mutable tail: 'a signal later;
+  mutable updated: bool
+}
+
+and 'a signal = SignalID of 'a signal_data
+\end{lstlisting}
+
+For a reader unfamiliar with FRP, signals can be considered to be pipes where values flow through the network and ends up at output signals.
+
+
+% \clearpage
+
+% \subsection{A simpler processor model}\label{processor-model}

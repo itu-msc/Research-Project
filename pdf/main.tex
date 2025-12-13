@@ -26,7 +26,7 @@
 \lstdefinestyle{full}{
   language=[Objective]Caml,
   captionpos=b,
-  numbers=left,
+  numbers=none,
   backgroundcolor=\color{backcolour},
   frameshape={RYR}{Y}{Y}{RYR},
   showspaces=false,
@@ -38,7 +38,8 @@
   emph={
     int,char,double,float,unsigned,void,bool,string,
     unit,list,option,some,none,
-    Types,Rizzo,Channel,channel,Signal,signal,Later,delayOnce,
+    Types,Rizzo,Channel,channel,Signal,signal,later,delayOnce,
+    signal_data,_,sync,
     \'a,\'b,\'c % needs to be here too
   },
   emphstyle={\color{types}},
@@ -54,7 +55,7 @@
   keywordstyle=[2]{\color{greencomments}},
   keywordstyle=[3]{\color{methods}},
   stringstyle=\color{redstrings},
-  basicstyle=\ttfamily\small,
+  basicstyle=\linespread{1.1}\ttfamily\small,
 }
 
 \lstdefinestyle{appendix}{

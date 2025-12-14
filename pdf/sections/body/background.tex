@@ -1,15 +1,14 @@
 \section{Using Rizzo}\label{using_rizzo}
 %user space, examples of how to use it?
-%Input channels : Clock signals, console signal, 
+%Input channels : Clock signals, console signal,
 %Output "channels":
 
-This section will give an overview of how Rizzo can be used to implement functional reactive programs. We will go through how to create input signals, use signal combinators to manipulate the signals, and how to output the signals. We then combine the three, and show an example program that uses Rizzo to implement a simple interactive application.
-We then finish the section with a list of the most notable functions and types provided by Rizzo.
+This section gives a practical overview of how Rizzo can be used to build functional reactive programs. We explain (1) how to create input signals, (2) how to transform them using signal combinators, and (3) how to connect signals to outputs. We then combine these pieces in a small example program, and finish with a short reference of the most important functions and types.
 
 \subsection{Inputs}
-Input sources in Rizzo are called channels. There can theoretically be implemented an input channel for any kind of input source, but currently Rizzo only has a console, clock and port input implementation.
+Input sources in Rizzo are called \emph{channels}. In principle, a channel can be implemented for many kinds of input sources, but the current library only provides channels for console input, a clock, and network ports.
 
-To use one of the input channels, the user requests to get one of the channels from Rizzo, and then uses the channel to create signals. For example, bellow we show how a console input channel can be used to create a signal that represents the input from the console.
+To use an input channel, you first obtain a channel from Rizzo, and then turn it into a signal. For example, below we create a signal that represents lines read from the console.
 
 \begin{lstlisting}
 open Rizzo
@@ -17,24 +16,27 @@ let console_channel = Channel.console_input () in
 let console_signal = Signal.mkSig_of_channel console_channel
 \end{lstlisting}
 
-\subsection{Signal combinators}
-Signals are the bread and butter of Rizzo, and Rizzo provides a number of signal combinators that can be used to manipulate signals. Some of the most notable signal combinators are \texttt{map}, \texttt{filter} and \texttt{sample}. Signal combinators come in two variants, the normal variant that works on regular signals, and the later variant that works on later signals. The later variant is denoted by appending an L to the name of the combinator.
+\paragraph{A note on \texttt{later}.}
+Many constructors return a value of type \texttt{'a signal later}. Intuitively, this means the signal is available one step later (e.g., after the runtime has observed an event from the channel). Most combinators and output functions therefore come in two variants: one for plain signals and one for later signals, indicated by an \texttt{L} suffix (e.g., \texttt{map} vs.\ \texttt{mapL}).
 
-A brief overview of the signal combinators is given below:
+\subsection{Signal combinators}
+Signals are the main abstraction in Rizzo, and the library provides a number of combinators for transforming them. Some of the most common ones are \texttt{map}, \texttt{filter}, and \texttt{sample}. As mentioned above, most combinators come in a plain variant and an \texttt{L}-variant that works on values of type \texttt{signal later}.
+
+A brief overview:
 \begin{itemize}
-  \item \texttt{map}: Takes a function and a signal as input, and produces a new signal where the function has been applied to each value of the input signal.
-  \item \texttt{filter}: Takes a predicate function and a signal as input, and produces a new signal that only contains values that satisfy the predicate.
-  \item \texttt{sample}: Takes two signals as input, and produces a new signal that contains the tuple values from both signals whenever the first signal produces a value.
+  \item \texttt{map}: applies a function to each value produced by a signal.
+  \item \texttt{filter}: keeps only the values that satisfy a predicate.
+  \item \texttt{sample}: when the first signal produces a value, it emits a pair consisting of that value and the current value of the second signal.
 \end{itemize}
 
 \subsection{Outputs}
-Rizzo provides output functions that can be used to output signals to various output sources. Currently Rizzo has output functions for console and network port outputs. Like the signal combinators there can be two variants, one for regular signals and one for later signals. Unlike the signal combinators, the output functions do not produce a new signal, but instead have the side effect of outputting the signal values to the output source.
+Rizzo provides output functions that connect signals to output sinks. Currently, the library supports console output and network port output. As with combinators, there are typically two variants: one for plain signals and one for later signals (\texttt{...L}). Unlike combinators, output functions do not produce a new signal; they perform a side effect whenever the input signal produces a value.
 
 \subsection{Example program}\label{section:rizzo_example}
 
-To give some insight into how Rizzo can be used, we will in this section present a small example program that uses Rizzo to implement a simple interactive application. The application will read input from the console and a network port, and will output values to the console and the network port based on the input it receives.
+To give some insight into how Rizzo can be used, we will in this section present a small example program that uses Rizzo to implement a simple interactive application. We start simple, by having the application read input from the console and a network port, and output the input to the console and network port.
 
-First we need to open the Rizzo modules that we will use in our program. In this case we will use the \texttt{Types}, \texttt{Signal} and \texttt{Channel} modules.
+First we open the the Rizzo modules we will use:
 
 \begin{lstlisting}
 open Rizzo.Types
@@ -49,34 +51,34 @@ let console_channel = console_input () in
 let port_channel = port_input 9000 in
 \end{lstlisting}
 
-Using the channels, we can create signals that represent the input from the console and the network port.
+Using the channels, we create two input signals:
 
 \begin{lstlisting}
 let console_in = mkSig_of_channel console_channel in
 let port_in = mkSig_of_channel port_channel in
 \end{lstlisting}
 
-If we simply wanted to output the input signals directly to the console, we would only need to use the \texttt{console\_outputL} function to output the signals values. \texttt{console\_outputL} takes a later signal as input, where the L indicates that the signal is of a later type.
+If we want to output the raw inputs, we can use \texttt{console\_outputL}. The \texttt{L} indicates that it expects a value of type \texttt{signal later}:
 
 \begin{lstlisting}
-console_outputL (console_in);
-console_outputL (port_in);
+console_outputL console_in;
+console_outputL port_in;
 \end{lstlisting}
 
-However, to demonstrate the use of the map signal combinator in Rizzo, We will map the input to a new string with a prefix, before outputting them to the console. The \texttt{mapL} combinator takes a function and a later signal as input, and produces a new later signal where the function has been applied to each value of the input signal.
+However, to demonstrate \texttt{map}, we can prefix the incoming strings before printing them:
 
 \begin{lstlisting}
 console_outputL (mapL (fun s -> "From console: " ^ s) console_in);
 console_outputL (mapL (fun s -> "From port: " ^ s) port_in);
 \end{lstlisting}
 
-Given we have not made a client that writes to the port, the port output will not produce any output, so lets fix that by taking the input from the console and writing it to the port as well. We can use the \texttt{port\_outputL} function from the \texttt{Channel} module to output to the port.
+Since we have not created a client that writes to the port, the port input may remain silent. To make this interaction visible, we can forward console input to the port using \texttt{port\_outputL}:
 
 \begin{lstlisting}
 port_outputL Unix.inet_addr_loopback 9000 console_in;
 \end{lstlisting}
 
-To block the main thread so the program does not exit, we call \lstinline{start_event_loop ();} at the end of the program.
+Finally, we call \lstinline{start_event_loop ();} to prevent the program from exiting.
 
 An example interaction with the program so far could look like this:
 
@@ -160,14 +162,17 @@ val clock_signal : float -> float signal * (unit -> unit)
 
 val head : 'a signal -> 'a
 val map : ('a -> 'b) -> 'a signal -> 'b signal
+val mapL : ('a -> 'b) -> 'a signal later -> 'b signal later
 val zip : 'a signal -> 'b signal -> ('a * 'b) signal
 val switch : 'a signal -> 'a signal later -> 'a signal
 val switchS : 'a signal -> ('a -> 'a signal) later -> 'a signal
 val switchR : 'a signal -> (('a -> 'a signal) signal) later -> 'a signal
 val sample : 'a signal -> 'b signal -> ('a * 'b) signal
+val sampleL : 'a signal later -> 'b signal -> ('a * 'b) signal later
 val scan : ('b -> 'a -> 'b) -> 'b -> 'a signal -> 'b signal
 val interleave  : ('a -> 'a -> 'a) -> 'a signal -> 'a signal -> 'a signal
 val filter : ('a -> bool) -> 'a signal later -> 'a signal later
+val filterL : ('a -> bool) -> 'a signal later -> 'a signal later
 val filter_map : ('a -> 'b option) -> 'a signal later -> 'b signal later
 val triggerL : ('a -> 'b -> 'c) -> 'a signal later -> 'b signal -> 'c signal later
 

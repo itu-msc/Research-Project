@@ -16,18 +16,24 @@ let console_channel = Channel.console_input () in
 let console_signal = Signal.mkSig_of_channel console_channel
 \end{lstlisting}
 
-\paragraph{A note on \texttt{later}.}
-Many constructors return a value of type \texttt{'a signal later}. Intuitively, this means the signal is available one step later (e.g., after the runtime has observed an event from the channel). Most combinators and output functions therefore come in two variants: one for plain signals and one for later signals, indicated by an \texttt{L} suffix (e.g., \texttt{map} vs.\ \texttt{mapL}).
+Most input constructors produce a value of type \texttt{'a signal later}, meaning the signal becomes available one step later (after the runtime observes an event). If the user wanted to make a signal with an initial value available immediately, they could use \texttt{Signal.init\_signal} instead. Which takes a channel and an initial value as arguments.
+
+\begin{lstlisting}
+let initialized_signal = Signal.init_signal console_channel "Initial value"
+\end{lstlisting}
 
 \subsection{Signal combinators}
-Signals are the main abstraction in Rizzo, and the library provides a number of combinators for transforming them. Some of the most common ones are \texttt{map}, \texttt{filter}, and \texttt{sample}. As mentioned above, most combinators come in a plain variant and an \texttt{L}-variant that works on values of type \texttt{signal later}.
+Signals are the main abstraction in Rizzo, and the library provides a number of combinators for transforming them. Some of the most common ones are \texttt{map}, \texttt{filter}, and \texttt{sample}.
 
-A brief overview:
 \begin{itemize}
   \item \texttt{map}: applies a function to each value produced by a signal.
   \item \texttt{filter}: keeps only the values that satisfy a predicate.
   \item \texttt{sample}: when the first signal produces a value, it emits a pair consisting of that value and the current value of the second signal.
 \end{itemize}
+
+\paragraph{A note on \texttt{later} and the \texttt{L} suffix.}
+Since most signals do not make sence to create with initial values, they are often of type \texttt{'a signal later} (see Section~\ref{section:rizzo_later} for details in the later type).
+Most combinators (and output functions) therefore come in two variants: one for plain signals and one for later signals, indicated by an \texttt{L} suffix (e.g., \texttt{map} vs.\ \texttt{mapL}). Intuitively, the \texttt{\underline{\hspace{0.5cm}}L} variant lets you build pipelines, without having to manually understand how to delay a signal to later, and makes the code more concise.
 
 \subsection{Outputs}
 Rizzo provides output functions that connect signals to output sinks. Currently, the library supports console output and network port output. As with combinators, there are typically two variants: one for plain signals and one for later signals (\texttt{...L}). Unlike combinators, output functions do not produce a new signal; they perform a side effect whenever the input signal produces a value.
@@ -158,6 +164,7 @@ val (|>>) : 'a later -> ('a -> 'b) -> 'b later
 (* Signal functions *)
 val mkSig : 'a later -> 'a signal later
 val mkSig_of_channel : 'a channel -> 'a signal later
+val init_signal : 'a channel -> 'a -> 'a signal
 val clock_signal : float -> float signal * (unit -> unit)
 
 val head : 'a signal -> 'a

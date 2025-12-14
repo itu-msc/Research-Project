@@ -81,7 +81,7 @@ let alloc : type a. a -> a signal later -> a signal_data =
     heap.next_id <- heap.next_id + 1;
     signal_data
 
-let insert s t = alloc s t |> ignore
+(* let insert s t = alloc s t |> ignore *)
 
 let delete (node: node) =
   match node.prev, node.next with
@@ -226,7 +226,7 @@ let step k v : unit =
       step_cursor k v;
       aux ()
   in
+  Gc.full_major ();
   reset_cursor ();
   aux ();
-  Gc.full_major ();
   Mutex.unlock mutex

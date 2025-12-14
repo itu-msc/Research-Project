@@ -108,6 +108,12 @@ let _minor_example =
   port_outputL Unix.inet_addr_loopback 9000 console_out_signal;
   start_event_loop (); *)
 
+(* let _old_side_effect_issue = 
+  let console = mkSig_of_channel ( console_input () ) in
+  let id_with_side_effect = fun x -> print_endline "[side - effect ]"; x in
+  ignore (" initial " @: mapL id_with_side_effect console);
+  start_event_loop () *)
+
 (* 
 PowerShell to write to port 9000:
 $client = New-Object System.Net.Sockets.TcpClient('localhost', 9000)

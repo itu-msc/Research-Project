@@ -52,13 +52,6 @@ The mutable references in the semantics of signals is what allows Rizzo to foreg
 \]
 Notice that the use of $box$ is gone and $map$ has taken its familiar form.
 
-%\todo{maybe split to 2 different examples? to put more focus on being allowed to use head xs}
-
-% TODO: we could also go with addHead
-% $addHead : \text{Sig }A \rightarrow \text{Sig }A$ that adds the head of a signal at each time step: 
-% \[
-% addHead \; xs = map \; (\lambda x. x + head \; xs) xs
-% \]
 Furthermore, removing the stable modality also allows a larger space of well-typed programs. Consider the function $sample : \text{Sig }A \rightarrow \text{Sig }B \rightarrow \text{Sig }(A \times B)$ defined as:
 \[
   sample \; xs \; ys = map \; (\lambda x. \langle x , head \; ys \rangle ) \; xs
@@ -77,17 +70,10 @@ as an embedded domain-specific language. Our contributions are:
 
 \begin{itemize}
   \item We design and implement a small Rizzo-style FRP library in OCaml,
-    closely following the operational semantics described in \citetitle{rizzo_modal_2025}.
+    closely following the operational semantics described in \citetitle{rizzo_modal_2025}\cite{rizzo_modal_2025}.
     Section~\ref{using_rizzo} illustrates how to use this library to build
     simple reactive programs.
-  \item We discuss the practical challenges of implementing Rizzo as an
-    embedded language, in particular the interaction between Rizzo's reactive
-    semantics and OCaml's own side effects, evaluation strategy, and memory
-    model.
-  \item We identify several limitations of the embedding 
-  (e.g. \todo{side effects, the memory model, \dots should we even have this here?}) and
-    outline possible extensions or language support that would make Rizzo-style
-    FRP more convenient to use in a mainstream setting.
+  \item We discuss practical challenges of embedding Rizzo in OCaml, in particular the interaction between the heap, weak references, garbage collection, and side effects, and we describe the mitigation used by our runtime.
 \end{itemize}
 
 % Related literature

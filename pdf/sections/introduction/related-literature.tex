@@ -9,4 +9,9 @@ For example, FRPNOW!~\cite{FRP_NOW} proposes a monadic interface to avoid some s
 
 Other approaches address space leaks through modal types, similar to Rizzo~\cite{rizzo_modal_2025}. 
 Examples include AdJS~\cite{adjs}, an FRP language which compiles to JavaScript based on the synchronous calculus of Krishnaswami~\cite{neel_krishnaswami_2013}, and Async Rattus~\cite{gebser_asynchronous_2023} which, like Rizzo, is asynchronous but is embedded in Haskell by a compiler plugin and a library for the language primitives.
-\todo{Mention `Rhine: FRP with Type-Level Clocks'?}
+% \todo{Mention `Rhine: FRP with Type-Level Clocks'?}
+
+% A different line of work uses typed clocks to structure reactivity, e.g.
+% Rhine, which tracks rates and clock domains at the type level. This allows
+% programs to safely combine signals sampled at different rates and from different 
+% clock domains~\cite{rhine}. While this approach can help avoid certain classes of space leaks, it does not directly address the core challenges that Rizzo targets, such as eliminating the need for a stable modality.

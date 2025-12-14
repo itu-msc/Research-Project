@@ -8,57 +8,96 @@ Since our implementation of Rizzo is an embedded language, the evaluation semant
 %the type and how to construct these
 \subsubsection{The heap}\label{section:rizzo_heap}
 %Conceptually, how the heap should work
-In Rizzo signals are stored in a specialized heap. This heap is divided in two: Namely, the \textit{now} heap $\eta_n$ and the \textit{earlier} heap $\eta_e$. We say that signals in the now are considered \textit{up-to-date} and signals in the earlier heap are old; that is they belong to the past and must be \textit{advanced} before they can be used. Conceptually, a heap is a sequence of mappings $id \mapsto v\langle U \rangle w$, which map an identifier to the data of a signal. This data contains the head $v$ and tail $w$ of a signal alongside a flag $U$ that indicates whether the signal has been updated in the current time step. This flag plays an important role for the reactive semantics described in Section~\ref{section:rizzo_semantics}. 
-% what is the comment about alloc suposed to say to the user?
-The heap provides a way to create fresh signal identifiers by using the function $\text{alloc} : A \rightarrow \text{later } A \rightarrow \text{Signal }A$.
-%Does this also include channels?
-
-%In our library, the `now' and `earlier' heaps are implemented as a single doubly-linked list. To achieve the two-part heap, we keep a pointer to the last element of the `now' heap, called the `cursor', which marks the boundary between the two. The choice of data structure is based on the requirements of the reactive semantics (Section~\ref{section:rizzo_semantics}): Firstly, whenever a new signal is allocated it should be put in the `now' part of the heap and hence we need fast insertion. Secondly, we need to be able to move data between the `now' and `earlier' heap efficiently, because it happens for every tick in time. Thirdly, we must be able to efficiently remove signals once they are no longer needed. Finally, we need to be able to traverse the entire heap to update signals. The linked list offers fast insertion and deletion as at arbitrary positions and the `cursor' reference makes it cheap to move data from the `earlier' heap to the `now' heap by simply changing a reference.
+In Rizzo signals are stored in a specialized heap. This heap is divided in two: Namely, the \textit{now} heap $\eta_n$ and the \textit{earlier} heap $\eta_e$. Signals in the \textit{now} heap are considered up-to-date, while signals in the \textit{earlier} heap belong to the past and must be \textit{advanced} before they can be used. Conceptually, heap entries map identifiers to \emph{signal data} records of the form
+\[
+  id \mapsto v\langle U \rangle w,
+\]
+where \(v\) is the current head value, \(w\) is the tail (a \texttt{later} value), and \(U\) is a boolean flag indicating whether the signal has been updated in the \emph{current} step. The updated flag is used by the reactive semantics (Section~\ref{section:rizzo_semantics}) to determine when \texttt{Trig} laters should fire.
+%The heap interface provides a fresh-allocation operation
+% \[
+%   \text{alloc} : A \rightarrow \text{later }A \rightarrow \text{Signal }A,
+% \]
+% which assigns a new identifier and stores the corresponding signal data in the heap. In our implementation, \texttt{alloc} is invoked whenever we construct a new signal (e.g. when interpreting \texttt{@:} or when advancing recursive combinators that allocate fresh tails).
 
 In our library, the \textit{now} and \textit{earlier} heaps are implemented as a single doubly-linked list. This choice is based on the requirements of the reactive semantics (Section~\ref{section:rizzo_semantics}): on every tick we must (1) traverse all heap entries to determine which signals tick and advance those that do, (2) allocate fresh signals during advancement, and (3) remove heap entries whose signals have been reclaimed by the garbage collector.
 
-Rather than physically maintaining two separate lists, we represent the \textit{now} and \textit{earlier} split implicitly using a \textit{cursor} node. At the start of each time step, we reset the cursor to the first heap element (immediately after a dummy head node). During the step, the cursor acts as an iteration pointer and boundary between the \textit{now} heap (nodes before the cursor that have been processed) and the \textit{earlier} heap (the cursor and nodes after it that remain to be processed). Advancing the cursor thus progressively brings signals into the new time step without relocating nodes.
+Rather than physically maintaining two separate lists, we represent the \textit{now} and \textit{earlier} in one list, split implicitly using a \textit{cursor} node. At the start of each time step, we reset the cursor to the first heap element (immediately after a dummy head node). During the step, the cursor acts as an iteration pointer and boundary between the \textit{now} heap (nodes before the cursor that have been processed) and the \textit{earlier} heap (the cursor and nodes after it that remain to be processed). Advancing the cursor thus progressively brings signals into the new time step without relocating nodes.
 
 This representation also supports efficient heap mutation. New signals are allocated by inserting a new node directly before the cursor, which is a constant-time operation in a doubly-linked list. Likewise, deletion is constant-time as it happens when the cursor has a reference to a node, where the signal has been reclaimed by the garbage collector. Overall, the linked-list with cursor design provides linear-time traversal while keeping allocation and removal constant.
 
-It is important to note the heap must not prevent signals from being garbage collected when they are no longer in use. Otherwise we would not know when to free up memory and we would risk space leaks in our implementation. To solve this we must ensure that the heap does not hold strong references to signals that would prevent them from being collected.
-Therefore, we must utilize weak references, which are pointers to values that the garbage collector is allowed to erase whenever they are no longer in use elsewhere. This greatly simplifies the memory management of our library, by requiring only that we remove entries for which the weak reference is no longer valid. However, it also means that we have no control on when unused signals are erased from memory and as such they may persist in the signal heap for longer than expected. This is especially problematic for any signals with side effects. 
+It is important to note the heap must not prevent signals from being garbage collected when they are no longer in use. Otherwise we would not know when to free up memory and we would risk space leaks in our implementation. To solve this we must utilize \textit{weak} references, which are pointers to values that the garbage collector is allowed to erase whenever they are no longer in use elsewhere. This greatly simplifies the memory management of our library, by requiring only that we remove entries for which the weak reference is no longer valid. However, it also means that we have no control of when unused signals are erased from memory and as such they may persist in the signal heap for longer than expected. This is especially problematic for any signals with side effects. 
 
-%However, since we are creating an embedded language, it is necessary to work within the OCaml memory model and that means co-existing with the OCaml garbage collector. If our heap were to directly hold reference to signals and their data, then it would prevent the garbage collector from ever erasing any unused signal. Therefore, we must utilize weak references, which are pointers to values that the garbage collector is allowed to erase whenever they are no longer in use elsewhere. This greatly simplifies the memory management of our library, by requiring only that we remove entries for which the weak reference is no longer valid. However, it also means that we have no control on when unused signals are erased from memory and as such they may persist in the signal heap for longer than expected. This is especially problematic for any signals with side effects. 
-Consider for example the Rizzo program in listing~\ref{listing:heap_side_effect}. The program defines a signal of strings, the tail of which has a side effect, namely printing $[\text{side-effect}]$, and the program then immediately ignores this signal. Note, the infix operator $(@\text{:})$ creates a new signal allocated on the heap exactly like $(\text{::})$ for lists. It would be reasonable to expect the program to do nothing but infinitely hang in the event loop. However, when the program is run and as the first value is produced on the $console\_input$ channel, the program prints $[\text{side-effect}]$. This happens because the garbage collector has yet to run and the ignored signal still exists in the heap, as a `ghost', and is thus updated every time the console produces a value.
+% \todo{consider moving this or changing the intro to it, maybe a separate section about gc and side effects?}
+% Consider for example the Rizzo program in listing~\ref{listing:heap_side_effect}. The program defines a signal of strings, the tail of which has a side effect, namely printing $[\text{side-effect}]$, and the program then immediately ignores this signal. Note, the infix operator $(@\text{:})$ creates a new signal allocated on the heap exactly like $(\text{::})$ for lists. It would be reasonable to expect the program to do nothing but infinitely hang in the event loop. However, when the program is run and as the first value is produced on the $console\_input$ channel, the program prints $[\text{side-effect}]$. This happens because the garbage collector has yet to run and the ignored signal still exists in the heap, as a `ghost', and is thus updated every time the console produces a value.
 
-\begin{lstlisting}[caption={Rizzo program with unexpected side effects}, label={listing:heap_side_effect}]
-let console = mkSig_of_channel (console_input ()) in
-let id_with_side_effect = 
-    fun x -> print_endline "[side-effect]"; x in
-ignore ("initial" @: mapL id_with_side_effect console);
-start_event_loop ()
-\end{lstlisting}
+% \begin{lstlisting}[caption={Rizzo program with unexpected side effects}, label={listing:heap_side_effect}]
+% let console = mkSig_of_channel (console_input ()) in
+% let id_with_side_effect = 
+%     fun x -> print_endline "[side-effect]"; x in
+% ignore ("initial" @: mapL id_with_side_effect console);
+% start_event_loop ()
+% \end{lstlisting}
 
-This problem of `ghost' signals in the heap would disappear in a language with reference counting rather than a garbage-collected runtime like that of OCaml. With reference counting, the signal in listing~\ref{listing:heap_side_effect} would be immediately discarded after ignore, preventing unexpected artifacts of any side-effects.
-To circumvent this issue, the alternative we have available is to manually trigger garbage collection at the end of each time step (see Section~\ref{section:rizzo_semantics} for details). This ensures that any unused signals are removed from memory before the next time step begins, preventing ghost signals from lingering in the heap.
+% This problem of `ghost' signals in the heap would disappear in a language with reference counting rather than a garbage-collected runtime like that of OCaml. With reference counting, the signal in listing~\ref{listing:heap_side_effect} would be immediately discarded after ignore, preventing unexpected artifacts of any side-effects.
+% To circumvent this issue, the alternative we have available is to manually trigger garbage collection at the end of each time step (see Section~\ref{section:rizzo_semantics} for details). This removes unused signals from memory, allowing us to clean up during the next step, instead of triggering side-effects.
 
 %Concrete implementation, why a linked list? Why weak reference etc. Also the "alloc" to create signals.
 
 
 \subsubsection{Reactive Rizzo}\label{section:rizzo_semantics}
 %Stuff like step, advance, 
-In Rizzo time `ticks' whenever input is produced on any channel, we say the program enters a new \textit{time step}. This begins a process, described by the \textit{step semantics}, which brings all signals into this new time step by either updating or moving them. At a high level, this process first moves everything to the \textit{earlier} heap. Then it traverses the entire heap, checking for each signal whether its tail has been affected by the new `tick' and if so, then we say the signal and its tail have \textit{ticked}. Ticked signals must be updated by advancing their tails to produce new values for head and tail, as described by the \textit{advance semantics}. Signals that have not ticked are moved into the new time step unchanged.
+When input is produced on a some channel \(k\), time \emph{ticks} and the program enters a new time step. The step semantics update the heap so that all signals reflect this new step.
 
-The implementation follows naturally from the above description. To update the heap, we first set the heap cursor to be the first element, then we loop over the heap calling the function $ticked : \text{channel } B \rightarrow \text{later } A \rightarrow bool$ to determine if a particular signal has ticked given the channel that produced the time step. Any signal that has not ticked is moved to the `now' heap by setting its updated flag to \textit{false} and moving the cursor forward. Whereas any signal that has ticked is advanced by calling $advance : \text{channel } B \rightarrow \text{later } A \rightarrow B \rightarrow A$ on the channel, the tail, and the value produced on the channel, which returns a (potentially freshly allocated) signal. The implementation of \texttt{advance} is discussed in Section~\ref{section:rizzo_advance}. The head and tail of the resulting signal is then written to the original signal by mutating its data record.
+To perform the update, our runtime implements a single update function
+\[
+  \text{step} : \text{Channel }B \rightarrow B \rightarrow (),
+\]
+which takes the channel that produced the event and the event payload. The update proceeds in three phases:
+
+\paragraph{(1) Initialize the step.}
+We start by running a garbage-collection cycle (read )
+We reset the cursor to the head of the heap, which conceptually is the same as moving everything to the \textit{earlier} heap.
+
+\paragraph{(2) Traverse the heap once.}
+We scan nodes from start to end until reaching the end. For each heap node we perform the following actions:
+
+\begin{enumerate}
+  \item If the weak reference is empty (the signal has been collected), delete the node and continue.
+  \item Otherwise, let the node contain signal data \((v\langle U \rangle w)\). We test whether the tail \(w\) \emph{ticks} with respect to the incoming channel event by calling
+    \[
+      \text{ticked} : \text{Channel }B \rightarrow \text{later }A \rightarrow \text{bool}.
+    \]
+  \item If \(w\) has not ticked, the signal is moved unchanged into the now heap, by resetting the update flag \(U\) to false, and advancing the cursor.
+  \item If \(w\) has ticked, the signal must be updated by advancing its tail. We compute
+    \[
+      v' = \text{advance }k\,w\,(\text{event value}),
+    \]
+    and then \emph{overwrite} the heap node the cursor points at with the new head and tail from \(v'\), before advancing the cursor. See Section~\ref{section:rizzo_advance} for details on \texttt{advance}.
+\end{enumerate}
+
+\paragraph{(3) Promptly reclaim duplicates and ghosts (GC interaction).}
+Overwriting existing heap nodes is efficient, but it interacts subtly with weak references and garbage collection. In particular, advancing a recursive tail (e.g. a \texttt{map}-like combinator) typically allocates a fresh signal \(s'\) and then copies \(s'\)'s tail into the existing signal \(s\) by mutation. If \(s'\) remains present in the heap as a ghost (because no GC cycle has yet cleared its weak reference), then on the next tick both \(s\) and \(s'\) may be visited and advanced, duplicating work and potentially duplicating side effects. Repeating this can lead to rapid heap growth.
+
+\todo{move this }
+To prevent this we would idealy use reference counting, which would immediately reclaim ghost signals. This would happen as the heap only holds weak references to these duplicates, so they would be erased immediately. However, since OCaml uses a tracing garbage collector, we instead trigger a major garbage-collection cycle at the end of each \textit{step}. This allows the garbage collector to remove any lingering ghost signals before next time step, preventing the accumulation
+
 
 %Note, this creates the problem of suddenly, you have two signals with the same tail.
-There is, however, a subtle but important interaction between this implementation, the OCaml garbage collector, and the way data is written from one signal to another. Consider a signal $s$ whose tail is defined by a recursive combinator such as $map$ that allocates a fresh signal at every call. Advancing the tail of $s$ allocates a new signal $s'$ on the heap and then updates $s$ by setting $s.tail \leftarrow s'.tail$. In OCaml this means that $s.tail$ and $s'.tail$ now reference the same underlying $\text{later }A$ value and therefore always tick at the same time. On its own this sharing is harmless, but in combination with the behaviour of the garbage collector and the `ghost' signals of Section~\ref{section:rizzo_heap} it becomes problematic. Unless a garbage-collection cycle runs between the write to $s.tail$ and the next heap update where $s$ (and by extension $s'$) ticks, both $s$ and $s'$ are advanced, each allocating a new signal. At the following tick there are four such signals, then eight, and so on. This leads to a rapidly growing heap and makes updating the heap slow. Futhermore, if the tail of $s$ has side-effects (for example, printing to the console), those also explode.
+% \todo{remove or rephrase the following paragraph if we move the earlier discussion about gc and side effects}
+% There is, however, a subtle but important interaction between this implementation, the OCaml garbage collector, and the way data is written from one signal to another. Consider a signal $s$ whose tail is defined by a recursive combinator such as $map$ that allocates a fresh signal at every call. Advancing the tail of $s$ allocates a new signal $s'$ on the heap and then updates $s$ by setting $s.tail \leftarrow s'.tail$. In OCaml this means that $s.tail$ and $s'.tail$ now reference the same underlying $\text{later }A$ value and therefore always tick at the same time. On its own this sharing is harmless, but in combination with the behaviour of the garbage collector and the `ghost' signals of Section~\ref{section:rizzo_heap} it becomes problematic. Unless a garbage-collection cycle runs between the write to $s.tail$ and the next heap update where $s$ (and by extension $s'$) ticks, both $s$ and $s'$ are advanced, each allocating a new signal. At the following tick there are four such signals, then eight, and so on. This leads to a rapidly growing heap and makes updating the heap slow. Futhermore, if the tail of $s$ has side-effects (for example, printing to the console), those also explode.
 
-Clearly, an ever-growing heap is unacceptable but the duplication of side-effects is especially problematic because of the way outputs are implemented (see Section~\ref{section:rizzo_io}) as internal signals performing side-effects. As a result our implementation of the language semantics must clean up by removing duplicated signals. This is achieved by triggering a garbage-collection cycle as the last step of updating the heap. Had we instead chosen a host language with reference counting, this issue would never arise, as only the heap holds (weak) references to these duplicate signals, so they would be erased immediately.
+% Clearly, an ever-growing heap is unacceptable but the duplication of side-effects is especially problematic because of the way outputs are implemented (see Section~\ref{section:rizzo_io}) as internal signals performing side-effects. As a result our implementation of the language semantics must clean up by removing duplicated signals. This is achieved by triggering a garbage-collection cycle as the last step of updating the heap. Had we instead chosen a host language with reference counting, this issue would never arise, as only the heap holds (weak) references to these duplicate signals, so they would be erased immediately.
 
 \subsubsection{Advancing later values}\label{section:rizzo_advance}
 %Mention that we are using GADTs and therefore we must in our implementation use "polymorphic recursion". In OCaml we must explicitly state the universally quantified type variable:
 % https://stackoverflow.com/a/69144537
 % https://ocaml.org/manual/5.4/polymorphism.html#s:polymorphic-recursion
 The function $ advance : \text{channel } B \rightarrow \text{later } A \rightarrow B \rightarrow A $ implements the \textit{advance semantics}, determining how later values are brought forward into a new time step when they tick. Since the \texttt{later} modality is modelled as a GADT, recursive calls to \texttt{advance} must be able to change the element type they operate on, which makes \texttt{advance} polymorphically recursive, rather than a regular recursive function.
-Consider, for example the \texttt{App} case in listing \ref{listing:rizzo_advance_code}. 
-The constructor $\texttt{App} : \text{delayOnce } (c \rightarrow a) \rightarrow \text{later }a \rightarrow \text{later }c$, introduces a new (existential) type $c$.
+Consider, for example the \texttt{App} case in listing \ref{listing:rizzo_advance_code}.
+The App constructor introduces a new (existential) type $c$.
+\[
+  \text{App} : \text{delayOnce } (c \rightarrow a) \rightarrow \text{later }a \rightarrow \text{later }c
+\]
 We must first advance $x : (\text{later }c)$ in order to pass its value to $f : \text{delayOnce }(c \rightarrow a)$. 
 At the outer call \texttt{advance} has type $\text{channel } b \rightarrow \; \text{later } a \rightarrow b \rightarrow a$ but inside the branch of \texttt{App} we need to call a type $\text{channel } b \rightarrow \; \text{later } c \rightarrow b \rightarrow c$. This change in type parameter across recursive calls is exactly what requires polymorphic recursion.
 
@@ -79,13 +118,13 @@ let rec advance
     (...)
 \end{lstlisting}
 
-\subsubsection{Input, output, the event loop} \label{section:rizzo_io}
+\subsubsection{Input, output and the event loop} \label{section:rizzo_io}
 
 The event loop in Rizzo follows naturally from the reactive semantics \ref{section:rizzo_semantics}, whenever an input is produced on any channel \textit{something} must update the heap by invoking $step : \text{Channel } A \rightarrow A \rightarrow ()$ with the corresponding channel and the produced value. In our implementation, the responsible \textit{something} are separate threads. That is each of the primitive channels \texttt{console\_input, clock, port\_input}, create their own thread which is then responsible for handling input from the console, a timer, or a Unix socket respectively and calling $step$. Since processing events from the environment has been delegated to separate worker threads, the crucial function \texttt{start\_even\_loop} does nothing more than block the main thread to avoid pre-emptive termination.
 
 %How are channels handled $\Rightarrow$ we spawn separate threads for console, clock, and port. REMEMBER TO MENTION SYNCHRONISATION access to the heap is protected by a mutex to avoid entering illegal states where the heap cursor is in multiple places\dots (should we mention happens-before?)
 However, because users can request multiple channels in a single Rizzo program, the runtime is in the general case multi-threaded. This means we must ensure that heap updates are synchronised (related by \textit{happens-before}) to avoid race conditions and leaving the heap partially updated. Therefore, the $step$ function is protected by a single mutex. 
-It is sufficient with a single mutex for the entire heap, as the semantics of Rizzo are single-threaded. In other words, the only time that data on the heap is read or changed, is while updating the heap, specifically when delayed computations are advanced. This corresponds exactly to the $inner$ call in listing \ref{listing:rizzo_step}.
+It is sufficient with a single mutex on the step function, as it is the only entrypoint for making chnages to the heap. In other words, the only time that data on the heap is read or changed, is while updating the heap, specifically when delayed computations are advanced. This corresponds exactly to the $aux$ call in listing~\ref{listing:rizzo_step}.
 %If a user were to create their own channel with `getInput' and then attempt to push values onto this channel from a signal ... the application deadlocks. This behaviour is fine, channels are meant for external input sources. Signals are internal!
 \begin{lstlisting}[caption={Implementation of step semantics. Step takes a channel $k$, the produced value $v$, and updates the heap.}, label={listing:rizzo_step}]
 let step k v : unit = 
@@ -104,13 +143,12 @@ let step k v : unit =
 \end{lstlisting}
 %The event loop. When a user is finished defining their signals, they \textit{start} the event loop. This blocks the main thread, so the program doesn't pre-emptively terminate. Also means that after this point all work is done entirely on input threads, which may cause `clock signal' (etc.) to go out of sync. Additionally, the threads (for input) are all started eagerly, meaning as soon they are invoked. So, while running the `setup', all the code before `start\_event\_loop', it may be that input is produced on channels before all signals have been declared. Meaning, for this brief period of execution it is possible that input is dropped, i.e. not given to some signals because they just do not exist in the heap yet!
 A consequence of this architecture is once a user commits to the event loop, all subsequent work is performed on the threads responsible for handling system input. This means any code for handling input (e.g.~reading from a network socket) is delayed by the time it takes to update the heap. If the heap is large or complex, it may lead to timers going out of sync or systems becoming unresponsive.
-Additionally, the threads of the primitive channels are all started eagerly. As a result, they may produce values while the program is still constructing signals, potentially causing any uninitialized signal to miss early input.
+Additionally, the threads of the primitive channels are all started eagerly. As a result, they may produce values while the program is still constructing signals, potentially causing any uninitialized signal to miss early input. Its very unlikely this would be an issue in practice for smaller programs, but it is something to be aware of.
 
-%Output, when users registers a signal to output then we create a new signal that has the side effect of printing. To avoid GC eating our output signals, we have to store these in a global variable. 
 Outputs must also integrate with the event loop. In our implementation this is achieved by internally creating signals that perform output operations. For example, in listing~\ref{listing:rizzo_io_output} user-provided string signals are mapped to a \texttt{print\_endline} call, which prints to the console. The resulting signals are stored in a list, \texttt{output\_signals}, so they are not reclaimed by the garbage collector.
 %AND because we are sort of abusing the heap ourselves, we have to explicitly call GC in heap (to avoid duplicating prints each tick).
 As a result, outputs are handled automatically as part of updating the heap. 
-However, this design reuses the kind tails with side-effects that cause problems elsewhere (Sections~\ref{section:rizzo_heap} and~\ref{section:rizzo_semantics}). So while the library discourages side-effects in signals, it simultaneously reintroduces them for outputs, making it so the implementation cannot ignore side-effects altogether.
+However, this design reuses the kind of tails with side-effects that cause problems elsewhere (Sections~\ref{section:rizzo_heap} and~\ref{section:rizzo_semantics}). So while the library discourages side-effects in signals, it simultaneously reintroduces them for outputs, making it so the implementation cannot ignore side-effects altogether.
 
 \begin{lstlisting}[caption={Rizzo \texttt{console\_output} implementation}, label={listing:rizzo_io_output}]
 let console_output (s : string signal) : unit =

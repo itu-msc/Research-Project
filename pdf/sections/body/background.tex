@@ -28,11 +28,11 @@ Signals are the main abstraction in Rizzo, and the library provides a number of 
 
 \begin{itemize}
   \item $\texttt{map} : (A \to B) \to A \text{ signal} \to B \text{ signal}$: applies a function to each value produced by a signal.
-  \item $\texttt{filter}: (A \to \text{bool}) \to A \text{ signal} \to (A \text{ signal}) \text{ later}$: keeps only values that satisfy a predicate. Noteably filter returns later value because the head of the signal may not satisfy the predicate. 
-  \item $\texttt{sample}: A \text{ signal} \to B \text{ signal} \to (A \times B) \text{ signal}$ : when the first signal produces a value, it emits a pair consisting of that value and the current value of the second signal.
+  \item $\texttt{filter}: (A \to \text{bool}) \to A \text{ signal} \to (A \text{ signal}) \text{ later}$: keeps only values that satisfy a predicate. Notably, since the first value satisfying the predicate may not occur immediately, $filter$ returns a delayed signal, a value of type $(A \text{ signal}) \text{ later}$.
+  \item $\texttt{sample}: A \text{ signal} \to B \text{ signal} \to (A \times B) \text{ signal}$: when the first signal produces a value, it emits a pair consisting of that value and the current value of the second signal.
 \end{itemize}
 
-\paragraph{A note on later values and the L suffix.} Some combinators are also provided in variants with an L suffix (for example, $map$ and $mapL$). These variants are intended to make it convenient to work with with delayed signals, that is, values of type $(A \text{ signal}) \text{ later}$, which are produced by combinators such as \texttt{filter} and \texttt{mkSig}.
+\paragraph{A note on later values and the L suffix.} Some combinators are also provided in variants with an L suffix (for example, $map$ and $mapL$). These variants are intended to make it convenient to work with with delayed signals, which are produced by \texttt{mkSig} and combinators such as \texttt{filter}.
 
 The \texttt{L}-variants do not introduce new behavior. Instead, they capture a common pattern of applying combinators to delayed signals. Concretely, they are wrappers around the infix operator
 $\texttt{<<|} : (A \to B) \to A \text{ later} \to B \text{ later}$ which lifts a function to operate on delayed values. For example, we may define $mapL : (A \to B) \to A \text{ signal} \text{ later} \to B \text{ signal} \text{ later}$ as:

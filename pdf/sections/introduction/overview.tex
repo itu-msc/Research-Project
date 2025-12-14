@@ -1,10 +1,15 @@
 
 \subsection{Report Overview}\label{overview}
-In this report we present the implementation of Rizzo, a functional reactive programming (FRP) library implemented in OCaml, based on the design presented in \cite{rizzo_modal_2025}.
+In this report we present the implementation of Rizzo, a functional reactive programming (FRP) library in OCaml, based on the design of~\cite{rizzo_modal_2025}.
 
 The report is structured as follows:
 \begin{itemize}
-    \item In section \ref{section:background} we will present the necessary background knowledge needed to understand the implementation of Rizzo. This includes a brief introduction to FRP, an overview of the Asynchronous Rattus calculus and a user perspective on how to use Rizzo.
-    \item In section \ref{section:rizzo_core} we will present the core implementation of Rizzo. We will go through the main components of Rizzo and explain how they work together to provide the FRP functionality.
-    \item In section \ref{section:conclusion} we will conclude the report by summarizing our findings and discussing potential future work. 
+    \item Section~\ref{using_rizzo} introduces Rizzo through a small example, which serves to illustrate the core abstractions and how a programmar uses Rizzo.
+    % \item In Section~\ref{section:rizzo_core} we will present the core implementation of Rizzo. We will go through the main components of Rizzo and explain how they work together to provide the FRP functionality.
+    \item Section~\ref{section:implementing_rizzo} presents the implementation of Rizzo. Section~\ref{section:rizzo_types}  details the encoding of Rizzo's core types and Section~\ref{section:rizzo_core} explains the runtime components that implement Rizzo's reactive behaviour.
+    \item In Section~\ref{section:conclusion} we conclude the report with summary our findings and a discussion of directions for future work. 
 \end{itemize}
+
+\subsection{Report Overview}\label{overview}
+
+This report describes the design and implementation of \emph{Rizzo}, a functional reactive programming (FRP) library implemented in OCaml, following the formal model introduced by Rizzo et al.~\cite{rizzo_modal_2025}. Our focus is on translating the abstract design into a concrete, type-safe implementation and explaining the key mechanisms that support reactivity.

@@ -13,12 +13,11 @@ type 'a channel = Index of int
 
 
 \subsubsection{The delayOnce type}
-\todo{I need a bit of help here, what exactly is it used for exept for helping us with not evaluating values and functions too early? ie given we dont have call-by-name in ocaml, we need a thunk wrapper right, which is this?}
-The delayOnce type is used to represent values that will be available at the next time step. This is useful when we have a function that we want to pass, but we don't want to evaluate the function until the next time step. 
+The \texttt{delayOnce} type represents a computation whose result becomes available at the next time step. It is used to delay evaluation in a controlled way, to support guarded recursion.
 
-delayOnce is implemented as a wrapper around a thunk, which is a function that takes no arguments and returns a value. The thunk is only evaluated when the value is needed, which is at the next time step.
+In the implementation, \texttt{delayOnce} is a wrapper around a thunk (a function of type \texttt{unit -> \'a}). The thunk is forced only when advancing to the next time step and the value is required.
 
-\subsubsection{The Later type} \label{section:rizzo_later}
+\subsubsection{The Later type}\label{section:rizzo_later}
 The Later type is used to represent values that will be available at a later time step. In contrast to delayOnce, the Later type does not guarantee that the value will be available at the next time step, but only at some later time step. For example, using a filter on a signal will produce a signal that does not guarantee a value at the next time step, since the filter may not pass any values through.
 
 We can for example make a later signal from a filter that never passes any values through, resulting in a later signal that never produces any values.
@@ -49,7 +48,7 @@ A user might so far have imagined the signal type to be defined as:
 type 'a signal = Sig of ('a * 'a signal later) ref
 \end{lstlisting}
 
-However, in the actual implementation signals must carry some additional information, a unique identifier and a flag indicating whether it has been updated. 
+However, in the actual implementation signals must carry some additional information, a unique identifier and a flag indicating whether it has been updated in the current time step. 
 These fields are used by the runtime to manage signals, as explained in Section~\ref{section:rizzo_core}. 
 
 The final internal representation of signals is shown in Listing~\ref{listing:signal_type}, where the record \texttt{signal\_data} has mutable \texttt{head} and \texttt{tail} fields, reflecting that signals are mutable references. 

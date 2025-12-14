@@ -3,10 +3,11 @@
 %Input channels : Clock signals, console signal,
 %Output "channels":
 
-This section gives a practical overview of how Rizzo can be used to build functional reactive programs. We explain (1) how to create input signals, (2) how to transform them using signal combinators, and (3) how to connect signals to outputs. We then combine these pieces in a small example program, and finish with a short reference of the most important functions and types.
+This section gives a practical overview of how Rizzo can be used to build functional reactive programs. We explain (1) how to create input signals, (2) how to transform them using signal combinators, and (3) how to connect signals to outputs. We then combine these pieces in a small example program, and finish with a short reference of the most important functions and types in Section~\ref{section:functions_and_types}.
 
 \subsection{Inputs}
-Input sources in Rizzo are called \emph{channels}. In principle, a channel can be implemented for many kinds of input sources, but the current library only provides channels for console input, a clock, and network ports.
+%Lead with the positive! we are the best B)
+Input sources in Rizzo are called \emph{channels}. The library currently provides channels for console input, timers, and network ports, but in principle a channel could be defined for any input source.
 
 To use an input channel, you first obtain a channel from Rizzo, and then turn it into a signal. For example, below we create a signal that represents lines read from the console.
 
@@ -141,7 +142,7 @@ This will now output the time in seconds since the program started whenever the 
 
 The full example program can be seen in Appendix~\ref{appendix:extended_example_program}.
 
-\subsection{Functions and types}
+\subsection{Functions and types}\label{section:functions_and_types}
 
 For the reader's convenience while reading, this subsection can be used as a reference to understand the channel and signal APIs provided by Rizzo. Below is a list of the most notable functions provided by Rizzo. The channel and signal type definitions can be found in Section~\ref{section:implementing_rizzo} as Listings~\ref{listing:channel_type} and~\ref{listing:signal_type} respectively.
 

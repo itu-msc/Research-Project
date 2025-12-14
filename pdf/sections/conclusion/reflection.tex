@@ -8,18 +8,32 @@
 \subsection{Reflection}\label{reflection}
 
 % some text about what we wanted to achieve with this project
+We set out to show that Rizzo's core ideas could be embedded in a mainstream programming language, while preserving its key properties of productivity, causality, and absence of space leaks. We chose OCaml as our host language due to it being a functional programming language with features that align well with Rizzo's design principles. We didn't realize the importants of OCaml's memory model and garbage collector for our implementation until we started working on it, but in the end we were able to work around the challenges they presented.
+
 
 \subsubsection{Evaluation}
 
 We believe we have achieved our goal of providing a brief yet informative
-introduction to Rizzo. We have presented the core concepts of Rizzo, including its
-type system and operational semantics, while demonstrated how to use our OCaml library with examples. We have also discussed the challenges we faced during the implementation by chosing OCaml and how we addressed them. For example we had to deal with OCaml's eager evaluation strategy, which required us to implement thunks to delay computations until the next time step.
+introduction to Rizzo. We have presented the core concepts of Rizzo, including its type system and operational semantics, while demonstrated how to use our OCaml library with examples. 
+We have also discussed the challenges we faced during the implementation by chosing OCaml and how we addressed them. For example we had to deal with OCaml's garbage collector to ensure that our heap representation worked correctly with Rizzo's semantics. Having said that, we consider this a benifit as it showed us an spect of Rizzo that we would not have encountered otherwise.
+
+In terms of the library itself, we believe it is a good starting point for further exploration of Rizzo in mainstream programming languages. We were able to impliment a few working input channels and signal outputs, and the core combinators needed to build reactive programs. 
+However, there is still room for improvement in terms of usability and performance. Though the actual library is working and the user can build reactive programs with it, the API could be made more user-friendly and intuitive. More methods and combinators could be added to make it easier to work with signals and channels. While the documentation could be expanded to provide descriptions to each function and type in the library, along with more examples and tutorials to help users get started. 
+
+In terms of performance, while we have not conducted any formal benchmarks, we believe there is potential for optimization. Though it is tied to the Rizzo semantics, we believe it should be possible to improve the efficiency of signal updates. We for example could explore ways to minimize allocations during signal updates, which would reduce the pressure on the garbage collector and improve overall performance.
+
+Just like formal benchmarks, we have not conducted any formal user studies to evaluate the usability of the library. However, we believe that the library is relatively easy to use for those familiar with functional programming and FRP concepts. The examples provided in Section~\ref{using_rizzo} should help users get started with the library and understand its core concepts.
+
+Though we believe we have achieved our goals with this project, we also recognize that there is still much work that can be done. 
+\todo{Something about what we will use this infromation for?}
 
 \subsubsection{Comparison to other works}
 
 Something about how our work compares to other works...
 
 \subsubsection{Further research}
+
+% The Rizzo is still only a prototype implementation, and there are many avenues for future research. Interesting directions for future work include improving the usability of the library, exploring optimizations to improve performance, and investigating how Rizzo can be integrated with other programming paradigms or languages.
 
 What have held us back and what could be done in the future...?
 
@@ -29,3 +43,5 @@ Should all input be given to the user as signals, so the user has less concepts 
 Should we make a way to expose all signals as a later, and that way the user only ever has to think about one type of signal? This would make the API simpler, and easier to learn.
 
 How would the user be able to create new input channels? Should we provide an interface for creating new channels, or should the user have to implement their own channels from scratch? and is there a domain of inputs all input types, and if so is that the OS interface? What else than console, env, files, network and clocks would be useful?
+
+Something about our master thesis?

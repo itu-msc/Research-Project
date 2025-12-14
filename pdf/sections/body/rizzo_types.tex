@@ -31,7 +31,7 @@ The internal type signature of Later is a GADT
 \begin{lstlisting}[caption={The later type definition},label={listing:later_type}]
 type _ later =
   | Never
-  | App : ('a -> 'b) delayOnce * 'a later -> 'b later   (* this is the O>*)
+  | App : ('a -> 'b) delayOnce * 'a later -> 'b later
   | Sync : 'a later * 'b later -> ('a, 'b) sync later
   | Wait : 'a channel -> 'a later
   | Trig : 'a option signal -> 'a later

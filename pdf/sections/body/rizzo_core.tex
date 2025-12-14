@@ -46,7 +46,7 @@ It is important to note the heap must not prevent signals from being garbage col
 
 \subsubsection{Reactive Rizzo}\label{section:rizzo_semantics}
 %Stuff like step, advance, 
-When input is produced on a some channel \(k\), time \emph{ticks} and the program enters a new time step. The step semantics update the heap so that all signals reflect this new step.
+When input is produced on a some channel \(k\), the time \emph{ticks} and the program enters a new time step. The step semantics update the heap so that all signals reflect this new step.
 
 To perform the update, our runtime implements a single update function
 \[

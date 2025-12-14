@@ -154,20 +154,9 @@ Notable channel and signal functions:
 val new_channel : unit -> 'a channel
 val clock_channel : float -> float channel * (unit -> unit)
 
-val never : 'a later
-val delay : (unit -> 'a) -> 'a delayOnce
-val adv : 'a delayOnce -> 'a
-val app : ('a -> 'b) delayOnce -> 'a later -> 'b later
-val sync: 'a later -> 'b later -> ('a, 'b) sync later
-val wait : 'a channel -> 'a later
-val trig : 'a option signal -> 'a later
-val tail : 'a signal -> 'a signal later
-val (|>>) : 'a later -> ('a -> 'b) -> 'b later
-
 (* Signal functions *)
 val mkSig : 'a later -> 'a signal later
 val mkSig_of_channel : 'a channel -> 'a signal later
-val init_signal : 'a channel -> 'a -> 'a signal
 val clock_signal : float -> float signal * (unit -> unit)
 
 val head : 'a signal -> 'a
@@ -175,21 +164,16 @@ val map : ('a -> 'b) -> 'a signal -> 'b signal
 val mapL : ('a -> 'b) -> 'a signal later -> 'b signal later
 val zip : 'a signal -> 'b signal -> ('a * 'b) signal
 val switch : 'a signal -> 'a signal later -> 'a signal
-val switchS : 'a signal -> ('a -> 'a signal) later -> 'a signal
-val switchR : 'a signal -> (('a -> 'a signal) signal) later -> 'a signal
 val sample : 'a signal -> 'b signal -> ('a * 'b) signal
 val sampleL : 'a signal later -> 'b signal -> ('a * 'b) signal later
 val scan : ('b -> 'a -> 'b) -> 'b -> 'a signal -> 'b signal
 val interleave  : ('a -> 'a -> 'a) -> 'a signal -> 'a signal -> 'a signal
 val filter : ('a -> bool) -> 'a signal later -> 'a signal later
 val filterL : ('a -> bool) -> 'a signal later -> 'a signal later
-val filter_map : ('a -> 'b option) -> 'a signal later -> 'b signal later
-val triggerL : ('a -> 'b -> 'c) -> 'a signal later -> 'b signal -> 'c signal later
 
 (* Output functions *)
 val console_output : string signal -> unit
 val console_outputL: string signal later -> unit
 val port_outputL : Unix.inet_addr -> int -> string signal later -> unit
-val set_quit : 'a signal later -> unit
 val start_event_loop : unit -> unit
 \end{lstlisting}

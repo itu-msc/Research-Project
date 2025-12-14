@@ -1,17 +1,17 @@
 Reactive programs are long-lived programs that continuously interact with their environment by receiving inputs and producing outputs. Typical examples include servers, interactive games, and graphical user interfaces.
 
-Functional reactive programming (FRP) \cite{ElliottHudak97:Fran} is a high-level paradigm for building reactive programs. It lets programmers use the familiar techniques of functional programming to implement and reason about time-flow and events. It lets programmers use familiar functional programming techniques to declaratively describe time-varying values and events, rather than in terms of low-level callbacks or mutable state.
+Functional reactive programming (FRP)~\cite{ElliottHudak97:Fran} is a high-level paradigm for building reactive programs. It lets programmers use familiar functional programming techniques to implement and reason about time-flow and events, and to describe time-varying values and events declaratively rather than with low-level callbacks or mutable state.
 
-At the core of FRP is the abstraction of a \emph{signal} (also known as a \emph{behaviour} \cite{ElliottHudak97:Fran}), which models the interaction with the environment over time. Intuitively, a signal of type $\text{Sig }A$ represents a time-varying value of type $A$, that can be operated on in a purely functional way.
+At the core of FRP is the abstraction of a \emph{signal} (also known as a \emph{behaviour}~\cite{ElliottHudak97:Fran}), which models the interaction with the environment over time. Intuitively, a signal of type $\text{Sig }A$ represents a time-varying value of type $A$, that can be operated on in a purely functional way.
 
 Naively representing signals as infinite streams makes it easy to write
 programs that are \emph{causal} and \emph{productive}: each output depends
 only on the current and past inputs, and each input eventually produces an
 output. However, such representations are prone to \emph{space leaks}, where
-old signal values can be retained in memory indefinitely \cite{bahr_asynchronous_2023}.
+old signal values can be retained in memory indefinitely~\cite{bahr_asynchronous_2023}.
 
 \subsection{Modal Types}
-To avoid space leaks (and to guarantee other operational properties such as causality and productivity), previous works \textit{modal types}\cite{neel_krishnaswami_2013,gebser_asynchronous_2023}. 
+To avoid space leaks (and to guarantee other operational properties such as causality and productivity), previous works use \textit{modal types}~\cite{neel_krishnaswami_2013,gebser_asynchronous_2023}.
 These modalities refine the type of a value with information about \emph{when} it is available and whether it is safe to retain across time steps. 
 
 The two main modalities are the \emph{later} modality $\bigcirc A$ and the
@@ -19,38 +19,38 @@ The two main modalities are the \emph{later} modality $\bigcirc A$ and the
 that a value of type $A$ will become available later. A value
 of type $\square A$ is \emph{time-independent}, making it safe to retain across time steps.
 
-Using these modalities we can safely define the signal type as: 
+Using these modalities, we can safely define the signal type as:
 \[
   \textbf{type} \text{ Sig } a = a :: \bigcirc (\text{Sig } a)
 \] 
-Here only current value is available now, while the next value is available later. 
-With this definition of signals it is possible to define a map function 
+Here, only the current value is available now, while the next value is available later.
+With this definition of signals, it is possible to define a map function 
 \[
   map : \square (a \rightarrow b) \rightarrow \text{Sig }a \rightarrow \text{Sig }b
 \] 
-Observe, the type $\square (a \rightarrow b)$ is crucial here, as it disallows the function from capturing references to old values which would otherwise cause space leaks.
+The type $\square (a \rightarrow b)$ is crucial here, as it enforces that the function is time-independent. This disallows the function from capturing references to old values which would otherwise cause space leaks.
 
 %Jeg prøver at skabe et eksempel for vores claim "However, having several modal types comes at a cost of making the type system more restrictive and complex. Which makes it less practical for real-world applications."
-However, this elegant solution comes at the cost of added complexity to the type checker and for users. Whenever a function like $map$ is used, the type checker must ensure through typing rules, that the provided function only uses other stable variables\cite{bahr_asynchronous_2023}. Additionally, programmers must perform a dance with the compiler to make types fit, consider as an example $mult2 : \text{Sig }a \rightarrow \text{Sig }a$, a function takes a signal to produce a new signal where the original values have been multiplied by two: 
+However, this elegant solution comes at the cost of added complexity for both the type checker and users. Whenever a function like $map$ is used, the type checker must ensure, through typing rules, that the provided function only uses other stable variables\cite{bahr_asynchronous_2023}. Additionally, programmers must perform a dance with the compiler to make types fit. For example, consider $mult2 : \text{Sig }a \rightarrow \text{Sig }a$, a function that takes a signal and produces a new signal where each value is multiplied by two:
 \[
   mult2 \; xs = map \; (box \;(\lambda x.\ x * 2)) \; xs
 \]
-Observe in particular the use of $box$ (the introduction form for $\square$) that is required to fit the stable modality of $map$.
+Note in particular the use of $box$ (the introduction form for $\square$), which is required to satisfy the stable modality of $map$.
 
 \subsection{Rizzo}
-Rizzo\cite{rizzo_modal_2025} is a FRP language that simplifies the modal type system while still guarantees productivity, causality, and the absence of space leaks. It achieves this by changing the semantics of signals. 
+Rizzo\cite{rizzo_modal_2025} is a FRP language that simplifies the modal type system while still guaranteeing productivity, causality, and the absence of space leaks. It achieves this by changing the semantics of signals.
 
-With the new semantics signals are mutable references: 
+With the new semantics, signals are mutable references:
 \[
   \textbf{type} \text{ Sig } a = \text{ref } (a \times \bigcirc (\text{Sig } a))
 \]
 A value of type $\text{Sig }a$ is thus a mutable reference to a pair $(u,v)$, where $u$ is the current value (the head) and $v$ is a delayed computation (the tail) used to update the reference in the next time step. Importantly, users of Rizzo do not update the reference themselves. It is instead updated by evaluating the tail $v$ as part of the \textit{reactive semantics} (see Section~\ref{section:rizzo_semantics}).
 
-The mutable references in the semantics of signals is what allows Rizzo to forego the $\square$ (stable) modality. Since signals are updated in place, it is impossible for Rizzo programs to reference the same signal from different time steps. Therefore, we can redefine $map : (a \rightarrow b) \rightarrow \text{Sig }a \rightarrow \text{Sig }b$ without the stable modality, allowing us to redefine $mult2$ as:
+The mutable references in the semantics of signals is what allows Rizzo to forego the $\square$ (stable) modality. Since signals are updated in place, dereferencing a signal always yields its current value, making earlier heads inaccessible via the signal itself. Therefore, we can give $map$ the familiar type $map : (a \rightarrow b) \rightarrow \text{Sig }a \rightarrow \text{Sig }b$ without requiring a stable modality, allowing us to redefine $mult2$ as:
 \[
   mult2 \; xs = map \; (\lambda x. x * 2) \; xs
 \]
-Notice, that the use of $box$ is gone and the use of $map$ has taken its familiar form.
+Notice that the use of $box$ is gone and $map$ has taken its familiar form.
 
 %\todo{maybe split to 2 different examples? to put more focus on being allowed to use head xs}
 
@@ -59,15 +59,15 @@ Notice, that the use of $box$ is gone and the use of $map$ has taken its familia
 % \[
 % addHead \; xs = map \; (\lambda x. x + head \; xs) xs
 % \]
-Furthermore, removing the stable modality also allows a bigger space of well-typed programs. Consider the function $sample : \text{Sig }A \rightarrow \text{Sig }B \rightarrow \text{Sig }(A \times B)$ defined as:
+Furthermore, removing the stable modality also allows a larger space of well-typed programs. Consider the function $sample : \text{Sig }A \rightarrow \text{Sig }B \rightarrow \text{Sig }(A \times B)$ defined as:
 \[
   sample \; xs \; ys = map \; (\lambda x. \langle x , head \; ys \rangle ) \; xs
 \]
-The $sample$ function takes two signals $xs$ and $ys$ to create a new signal that samples the head of $ys$ whenever $xs$ produces a value $x$ and then produces a pair $(x, head \; ys)$. This program would fail to type-check with the previous defintion of $map$, since the lambda's type is not stable as it references $ys$ and this reference would cause a space leak as old values of $ys$ must be kept in memory. However, with the semantics of Rizzo, it is safe for the lambda to reference $ys$ directly. 
+The $sample$ function takes two signals $xs$ and $ys$ and creates a new signal that samples the head of $ys$ whenever $xs$ produces a value $x$ and then produces a pair $(x, head \; ys)$. This program would fail to type-check with the previous definition of $map$, since the lambda is not stable as it references $ys$. The reference to $ys$ would cause a space leak as old values of $ys$ must be kept in memory. However, with Rizzo's semantics, it is safe for the lambda to reference $ys$ directly, because $ys$ is updated in place.
 
 % WE HAD TO SAY "OH BTW, signals are asynchronous somewhere"
 % The $sample$ function is particularly interesting because signals in Rizzo are \emph{asynchronous}; different signals are not necessarily updated at the same time. Where it can be used to read data from a signal based on some event happening, as demonstrated in Section~\ref{section:rizzo_example}.
-Rizzo is also asynchronous, meaning that different signals are not updated at the same time. Rizzo allows each input source to produce events at its own pace, while Rizzo's runtime ensures that only one event is processed at a time. This asynchronous nature is what makes $sample$ well-typed without the stable modality. Since signals are updated independently, there is no risk of retaining old values across time steps. An example of using $sample$ to read data from one signal based on an event occurring on another signal is demonstrated in Section~\ref{section:rizzo_example}.
+Rizzo is also asynchronous, meaning that different signals are not necessarily updated at the same time. Rizzo allows each input source to produce events at its own pace, while the runtime ensures that only one event is processed at a time. This makes programs like $sample$ useful, as $xs$ can trigger reads of the current head of $ys$ without requiring $ys$ to update at the same moment. An example of using $sample$ to read data from one signal based on an event occurring on another signal is demonstrated in Section~\ref{section:rizzo_example}.
 
 
 \subsection{Contributions}

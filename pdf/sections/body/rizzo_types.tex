@@ -3,7 +3,8 @@ Having already used the primitive types of Rizzo, this section formalises their 
 
 \subsubsection{Channels}
 Channels are input sources to Rizzo programs, they are controlled by the Rizzo runtime, and provided to the user through the Rizzo Channel module.
-Channels produce input events at discrete time steps. All channels in Rizzo share a single global clock, where each tick of the clock represents a discrete time step at which channels may produce input events.
+Channels produce input events at discrete time steps. 
+%All channels in Rizzo share a single global clock, where each tick of the clock represents a discrete time step at which channels may produce input events.
 
 Internaly, the channel type is an index that identifies the channel. We incriment the index for each new channel created, so each channel has a unique index. But from the user's perspective, channels are opaque types that can only be created using the Rizzo Channel module.
 
@@ -17,16 +18,18 @@ The \texttt{delayOnce} type represents a computation whose result becomes availa
 
 In the implementation, \texttt{delayOnce} is a wrapper around a thunk (a function of type \texttt{unit -> \'a}). The thunk is forced only when advancing to the next time step and the value is required.
 
-\subsubsection{The Later type}\label{section:rizzo_later}
-The Later type is used to represent values that will be available at a later time step. In contrast to delayOnce, the Later type does not guarantee that the value will be available at the next time step, but only at some later time step. For example, using a filter on a signal will produce a signal that does not guarantee a value at the next time step, since the filter may not pass any values through.
+\subsubsection{The later type}\label{section:rizzo_later}
+The \texttt{later} type represents a delayed computation, a promise that a value will become available at some future time step (or never). Such a promise is \emph{triggered} only when it is advanced by the reactive semantics (Section~\ref{section:rizzo_semantics}), and \emph{how} it triggers depends on the constructor: \texttt{Never} never triggers; \texttt{Wait} triggers when its channel produces an input; \texttt{Trig} triggers when the watched option-signal has a head of the form \texttt{Some}\,$A$; \texttt{Tail} triggers when the tail of the provided signal does; \texttt{App} triggers by applying a delayed function to a triggered argument; and \texttt{Sync} triggers when either side (or both) triggers.
 
-We can for example make a later signal from a filter that never passes any values through, resulting in a later signal that never produces any values.
+To encode the later modality as a type it is necessary for \texttt{later} to be able to change and refine its element type. As an example consider the \texttt{App} constructor. It represents applying a delayed function ($(A \to B) \text{  delayOnce}$) to a delayed computation ($A \text{ later}$) and must there be able to produce a delayed computation of a different type ($B \text{ later}$). In order to capture this behaviour we need to model \texttt{later} as GADT which allows constructors such as $\texttt{App} : ((A \to B) \text{ delayOnce} \times A \text{ later}) \to B \text{ later}$.
 
-\begin{lstlisting}[caption={Creating a later signal that never produces any values},label={listing:never_signal}]
-let never_signal = filterL (fun _ -> false) some_input_signal in
-\end{lstlisting}
 
-The internal type signature of Later is a GADT
+%The Later type is used to represent values that will be available at a later time step. In contrast to delayOnce, the Later type does not guarantee that the value will be available at the next time step, but only at some later time step. For example, using a filter on a signal will produce a signal that does not guarantee a value at the next time step, since the filter may not pass any values through.
+%We can for example make a later signal from a filter that never passes any values through, resulting in a later signal that never produces any values.
+
+%\begin{lstlisting}[caption={Creating a later signal that never produces any values},label={listing:never_signal}]
+%let never_signal = filterL (fun _ -> false) some_input_signal in
+%\end{lstlisting}
 
 \begin{lstlisting}[caption={The later type definition},label={listing:later_type}]
 type _ later =

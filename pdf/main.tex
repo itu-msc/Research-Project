@@ -108,7 +108,9 @@
 \clearpage
 
 \begin{abstract}
-This report presents an implementation of Rizzo, a functional reactive programming (FRP) library implemented in OCaml. Rizzo is based on the design presented by Bahr~\cite{rizzo_modal_2025}, which introduces a simplified type system for FRP while preserving safety guarantees. The report covers the necessary background knowledge, the core implementation of Rizzo, and discusses potential future work.
+This report presents an implementation of Rizzo, a functional reactive programming (FRP) language implemented in OCaml. Rizzo is based on the design presented by Bahr~\cite{rizzo_modal_2025}, which introduces a simplified type system, removing the need for a stable modality while ensuring causality and productivity. We implement the later modality, channels, and signals and provide a library of signal combinators to work with them.
+
+We further present a runtime with a global signal heap and address issues that arise from the combination of weak references and them not being collected immediately after becoming unreachable. We address the issue by forcing garbage collection to ensure signals are collected before each time step.
 \end{abstract}
 \setcounter{page}{1}
 \clearpage

@@ -4,8 +4,7 @@ Functional reactive programming (FRP)~\cite{ElliottHudak97:Fran} is a high-level
 
 At the core of FRP is the abstraction of a \emph{signal} (also known as a \emph{behaviour}~\cite{ElliottHudak97:Fran}), which models the interaction with the environment over time. Intuitively, a signal of type $\text{Sig }A$ represents a time-varying value of type $A$, that can be operated on in a purely functional way.
 
-Naively representing signals as infinite streams makes it easy to write
-programs that are either not \emph{causal} or not \emph{productive}: each output depends
+Naively representing signals as infinite streams makes it easy to write programs that violate either \emph{causality} or \emph{productivity}: each output depends
 only on the current and past inputs, and each input eventually produces an
 output. Futhermore, such representations are prone to \emph{space leaks}, where
 old signal values can be retained in memory indefinitely~\cite{bahr_asynchronous_2023}.

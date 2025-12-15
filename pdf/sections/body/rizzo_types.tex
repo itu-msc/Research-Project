@@ -16,7 +16,7 @@ type 'a channel = Index of int
 \subsubsection{The delayOnce type}
 The \texttt{delayOnce} type represents a computation whose result becomes available at the next time step. It is used to delay evaluation in a controlled way, to support guarded recursion.
 
-In the implementation, \texttt{delayOnce} is a wrapper around a thunk (a function of type \texttt{unit -> \'a}). The thunk is forced only when advancing to the next time step and the value is required.
+In the implementation, \texttt{delayOnce} is a wrapper around a thunk (a function of type $\text{unit} \to A$). The thunk is forced only when advancing to the next time step and the value is required.
 
 \subsubsection{The later type}\label{section:rizzo_later}
 The \texttt{later} type represents a delayed computation, a value will become available at some future time step (or never). Such a promise is \emph{triggered} only when it is advanced by the reactive semantics (Section~\ref{section:rizzo_semantics}), and \emph{how} it triggers depends on the constructor: \texttt{Never} never triggers; \texttt{Wait} triggers when its channel produces an input; \texttt{Trig} triggers when the watched option-signal has a head of the form \texttt{Some}\,$A$; \texttt{Tail} triggers when the tail of the provided signal does; \texttt{App} triggers when its delayed argument does; and \texttt{Sync} triggers when either or both sides trigger.

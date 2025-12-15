@@ -19,7 +19,7 @@ where \(v\) is the current head value, \(w\) is the tail (a \texttt{later} value
 % \]
 % which assigns a new identifier and stores the corresponding signal data in the heap. In our implementation, \texttt{alloc} is invoked whenever we construct a new signal (e.g. when interpreting \texttt{@:} or when advancing recursive combinators that allocate fresh tails).
 
-In our library, the \textit{now} and \textit{earlier} heaps are implemented as a single doubly-linked list. This choice is based on the requirements of the reactive semantics (Section~\ref{section:rizzo_semantics}): on every tick we must (1) traverse all heap entries to determine which signals tick and advance those that do, (2) allocate fresh signals during advancement, and (3) remove heap entries whose signals have been reclaimed by the garbage collector.
+In our library, the \textit{now} and \textit{earlier} heaps are implemented as a single doubly-linked list. This choice is based on the requirements of the reactive semantics (Section~\ref{section:rizzo_semantics}): on every tick we must (1) traverse all heap entries to determine which signals tick and advance those that do, (2) allocate new signals during advancement, and (3) remove heap entries whose signals have been reclaimed by the garbage collector.
 
 Rather than physically maintaining two separate lists, we represent the \textit{now} and \textit{earlier} in one list, split implicitly using a \textit{cursor} node. At the start of each time step, we reset the cursor to the first heap element (immediately after a dummy head node). During the step, the cursor acts as an iteration pointer and boundary between the \textit{now} heap (nodes before the cursor that have been processed) and the \textit{earlier} heap (the cursor and nodes after it that remain to be processed). Advancing the cursor thus progressively brings signals into the new time step without relocating nodes.
 
@@ -49,13 +49,13 @@ When input is produced on a some channel \(k\), the time \emph{ticks} and the pr
 
 To perform the update, our runtime implements a single update function
 \[
-  \text{step} : \text{Channel }B \rightarrow B \rightarrow (),
+  \text{step} : B \text{ channel} \rightarrow B \rightarrow unit,
 \]
-which takes the channel that produced the event and the event payload. The update proceeds in three phases:
+which takes the channel that produced the event and the event payload. The update proceeds in two phases:
 
 \paragraph{(1) Initialize the step.}
-We start by running a garbage-collection cycle (read )
-We reset the cursor to the head of the heap, which conceptually is the same as moving everything to the \textit{earlier} heap.
+We start by running a garbage-collection cycle to reclaim signals that have become unreachable since the last step.
+We then reset the cursor to the head of the heap, which conceptually is the same as moving everything to the \textit{earlier} heap.
 
 \paragraph{(2) Traverse the heap once.}
 We scan nodes from start to end until reaching the end. For each heap node we perform the following actions:
@@ -64,7 +64,7 @@ We scan nodes from start to end until reaching the end. For each heap node we pe
   \item If the weak reference is empty (the signal has been collected), delete the node and continue.
   \item Otherwise, let the node contain signal data \((v\langle U \rangle w)\). We test whether the tail \(w\) \emph{ticks} with respect to the incoming channel event by calling
     \[
-      \text{ticked} : \text{Channel }B \rightarrow \text{later }A \rightarrow \text{bool}.
+      \text{ticked} : B \text{ channel} \rightarrow A \text{ later} \rightarrow \text{bool}.
     \]
   \item If \(w\) has not ticked, the signal is moved unchanged into the now heap, by resetting the update flag \(U\) to false, and advancing the cursor.
   \item If \(w\) has ticked, the signal must be updated by advancing its tail. We compute
@@ -74,8 +74,7 @@ We scan nodes from start to end until reaching the end. For each heap node we pe
     and then \emph{overwrite} the heap node the cursor points at with the new head and tail from \(v'\), before advancing the cursor. See Section~\ref{section:rizzo_advance} for details on \texttt{advance}.
 \end{enumerate}
 
-\paragraph{(3) Promptly reclaim duplicates and ghosts (GC interaction).}
-Overwriting existing heap nodes is efficient, but it interacts subtly with weak references and garbage collection. In particular, advancing a recursive tail (e.g. a \texttt{map}-like combinator) typically allocates a fresh signal \(s'\) and then copies \(s'\)'s tail into the existing signal \(s\) by mutation. If \(s'\) remains present in the heap as a ghost (because no GC cycle has yet cleared its weak reference), then on the next tick both \(s\) and \(s'\) may be visited and advanced, duplicating work and potentially duplicating side effects. Repeating this can lead to rapid heap growth.
+Overwriting existing heap nodes is efficient, but it interacts subtly with weak references and garbage collection. In particular, advancing a recursive tail (e.g. a \texttt{map}-like combinator) typically allocates a new signal \(s'\) and then copies \(s'\)'s tail into the existing signal \(s\) by mutation. If \(s'\) remains present in the heap as a ghost (because no GC cycle has yet cleared its weak reference), then on the next tick both \(s\) and \(s'\) may be visited and advanced, duplicating work and potentially duplicating side effects. Repeating this can lead to rapid heap growth.
 
 We mitigate this in our implementation by triggering a major garbage-collection cycle at the \emph{start} of each \textit{step}. This encourages the runtime to clear weak references for unreachable heap entries, so that lingering ghost signals are removed before we traverse and update the heap, reducing both unnecessary work and the risk of accumulating duplicates.
 
@@ -85,16 +84,16 @@ A better solution, if it were available to us, would be reference counting. Sinc
 %Mention that we are using GADTs and therefore we must in our implementation use "polymorphic recursion". In OCaml we must explicitly state the universally quantified type variable:
 % https://stackoverflow.com/a/69144537
 % https://ocaml.org/manual/5.4/polymorphism.html#s:polymorphic-recursion
-The function $ advance : \text{channel } B \rightarrow \text{later } A \rightarrow B \rightarrow A $ implements the \textit{advance semantics}, determining how later values are brought forward into a new time step when they tick. Since the \texttt{later} modality is modelled as a GADT, recursive calls to \texttt{advance} must be able to change the element type they operate on, which makes \texttt{advance} polymorphically recursive, rather than a regular recursive function.
-Consider, for example the \texttt{App} case in listing \ref{listing:rizzo_advance_code}.
+The function $ advance : B \text{ channel} \rightarrow A \text{ later} \rightarrow B \rightarrow A $ implements the \textit{advance semantics}, determining how later values are brought forward into a new time step when they tick. Since the \texttt{later} modality is modelled as a GADT, recursive calls to \texttt{advance} must be able to change the element type they operate on, which makes \texttt{advance} polymorphically recursive, rather than a regular recursive function.
+Consider, for example the \texttt{App} case in Listing~\ref{listing:rizzo_advance_code}.
 The App constructor introduces a new (existential) type $c$.
 \[
-  \text{App} : \text{delayOnce } (c \rightarrow a) \rightarrow \text{later }a \rightarrow \text{later }c
+  \text{App} : (c \rightarrow a) \text{ delayOnce}  \rightarrow a \text{ later} \rightarrow c \text{ later}
 \]
-We must first advance $x : (\text{later }c)$ in order to pass its value to $f : \text{delayOnce }(c \rightarrow a)$. 
-At the outer call \texttt{advance} has type $\text{channel } b \rightarrow \; \text{later } a \rightarrow b \rightarrow a$ but inside the branch of \texttt{App} we need to call a type $\text{channel } b \rightarrow \; \text{later } c \rightarrow b \rightarrow c$. This change in type parameter across recursive calls is exactly what requires polymorphic recursion.
+We must first advance $x : (c \text{ later})$ in order to pass its value to $f : \text{delayOnce }(c \rightarrow a)$. 
+At the outer call \texttt{advance} has type $b \text{ channel}  \rightarrow \; a \text{ later} \rightarrow b \rightarrow a$ but inside the branch of \texttt{App} we need to call a type $b \text{ channel} \rightarrow \; c \text{ later} \rightarrow b \rightarrow c$. This change in type parameter across recursive calls is exactly what requires polymorphic recursion.
 
-In OCaml, such polymorphic recursion is not inferred automatically and must be expressed using locally abstract type variables, the \textit{type a} annotation in listing \ref{listing:rizzo_advance_code}. Without this annotation the program fails type checking.
+In OCaml, such polymorphic recursion is not inferred automatically and must be expressed using locally abstract type variables, the \textit{type a} annotation in Listing~\ref{listing:rizzo_advance_code}. Without this annotation the program fails type checking.
 %Do we cite ocaml GADTS? https://ocaml.org/manual/5.2/gadts-tutorial.html
 
 \begin{lstlisting}[caption={OCaml implementation of the advance semantics of Rizzo including only the case for \texttt{App}. The existential type $c$ has been made explicit to demonstrate the need for polymorphic recursion.}, label={listing:rizzo_advance_code}]
@@ -111,13 +110,13 @@ let rec advance
     (...)
 \end{lstlisting}
 
-\subsubsection{Input, output and the event loop} \label{section:rizzo_io}
+\subsubsection{Input, output and the event loop}\label{section:rizzo_io}
 
-The event loop in Rizzo follows naturally from the reactive semantics \ref{section:rizzo_semantics}, whenever an input is produced on any channel \textit{something} must update the heap by invoking $step : \text{Channel } A \rightarrow A \rightarrow ()$ with the corresponding channel and the produced value. In our implementation, the responsible \textit{something} are separate threads. That is each of the primitive channels \texttt{console\_input, clock, port\_input}, create their own thread which is then responsible for handling input from the console, a timer, or a Unix socket respectively and calling $step$. Since processing events from the environment has been delegated to separate worker threads, the crucial function \texttt{start\_even\_loop} does nothing more than block the main thread to avoid pre-emptive termination.
+The event loop in Rizzo follows naturally from the reactive semantics \ref{section:rizzo_semantics}, whenever an input is produced on any channel \textit{something} must update the heap by invoking $step : A \text{ channel} \rightarrow A \rightarrow ()$ with the corresponding channel and the produced value. In our implementation, the responsible \textit{something} are separate threads. That is each of the primitive channels \texttt{console\_input, clock, port\_input}, create their own thread which is then responsible for handling input from the console, a timer, or a Unix socket respectively and calling $step$. Since processing events from the environment has been delegated to separate worker threads, the crucial function \texttt{start\_even\_loop} does nothing more than block the main thread to avoid pre-emptive termination.
 
 %How are channels handled $\Rightarrow$ we spawn separate threads for console, clock, and port. REMEMBER TO MENTION SYNCHRONISATION access to the heap is protected by a mutex to avoid entering illegal states where the heap cursor is in multiple places\dots (should we mention happens-before?)
 However, because users can request multiple channels in a single Rizzo program, the runtime is in the general case multi-threaded. This means we must ensure that heap updates are synchronised (related by \textit{happens-before}) to avoid race conditions and leaving the heap partially updated. Therefore, the $step$ function is protected by a single mutex. 
-It is sufficient with a single mutex on the step function, as it is the only entrypoint for making chnages to the heap. In other words, the only time that data on the heap is read or changed, is while updating the heap, specifically when delayed computations are advanced. This corresponds exactly to the $aux$ call in listing~\ref{listing:rizzo_step}.
+It is sufficient with a single mutex on the step function, as it is the only entrypoint for making chnages to the heap. In other words, the only time that data on the heap is read or changed, is while updating the heap, specifically when delayed computations are advanced. This corresponds exactly to the $aux$ call in Listing~\ref{listing:rizzo_step}.
 %If a user were to create their own channel with `getInput' and then attempt to push values onto this channel from a signal ... the application deadlocks. This behaviour is fine, channels are meant for external input sources. Signals are internal!
 \begin{lstlisting}[caption={Implementation of step semantics. Step takes a channel $k$, the produced value $v$, and updates the heap.}, label={listing:rizzo_step}]
 let step k v : unit = 
@@ -138,7 +137,7 @@ let step k v : unit =
 A consequence of this architecture is once a user commits to the event loop, all subsequent work is performed on the threads responsible for handling system input. This means any code for handling input (e.g.~reading from a network socket) is delayed by the time it takes to update the heap. If the heap is large or complex, it may lead to timers going out of sync or systems becoming unresponsive.
 Additionally, the threads of the primitive channels are all started eagerly. As a result, they may produce values while the program is still constructing signals, potentially causing any uninitialized signal to miss early input. Its very unlikely this would be an issue in practice for smaller programs, but it is something to be aware of.
 
-Outputs must also integrate with the event loop. In our implementation this is achieved by internally creating signals that perform output operations. For example, in listing~\ref{listing:rizzo_io_output} user-provided string signals are mapped to a \texttt{print\_endline} call, which prints to the console. The resulting signals are stored in a list, \texttt{output\_signals}, so they are not reclaimed by the garbage collector.
+Outputs must also integrate with the event loop. In our implementation this is achieved by internally creating signals that perform output operations. For example, in Listing~\ref{listing:rizzo_io_output} user-provided string signals are mapped to a \texttt{print\_endline} call, which prints to the console. The resulting signals are stored in a list, \texttt{output\_signals}, so they are not reclaimed by the garbage collector.
 %AND because we are sort of abusing the heap ourselves, we have to explicitly call GC in heap (to avoid duplicating prints each tick).
 As a result, outputs are handled automatically as part of updating the heap. 
 However, this design reuses the kind of tails with side-effects that cause problems elsewhere (Sections~\ref{section:rizzo_heap} and~\ref{section:rizzo_semantics}). So while the library discourages side-effects in signals, it simultaneously reintroduces them for outputs, making it so the implementation cannot ignore side-effects altogether.

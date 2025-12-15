@@ -1,5 +1,5 @@
 
-\section{Async Rattus Haskell example port}\label{appendix:program}
+\subsection{Async Rattus Haskell example port}\label{appendix:program}
 
 This is a Rizzo port of the Async Rattus example program from Fig. 4 in \citetitle{gebser_asynchronous_2023}.
 We have adapted the program to use Rizzo's API and OCaml syntax, and added a port output for the console input as well.
@@ -42,7 +42,7 @@ let _paper_example =
   every_second_stop ()
 \end{lstlisting}
 
-\section{simple example.ml}\label{appendix:simple_example_program}
+\subsection{simple example.ml}\label{appendix:simple_example_program}
 
 \begin{lstlisting}
 open Rizzo.Types
@@ -60,10 +60,10 @@ let () =
 
     port_outputL Unix.inet_addr_loopback 9000
     console_out_signal;
-    start_event_loop ();
+    start_event_loop ()
 \end{lstlisting}
 
-\section{Extended example.ml}\label{appendix:extended_example_program}
+\subsection{Extended example.ml}\label{appendix:extended_example_program}
 
 The program will take any input from the console and print it directly to the console prefixed with `From console: '. It will also send the same input to port 9000 on localhost, and print any input received on that port to the console prefixed with `From port: '.
 It will then use filter to make a new signal that only contains the string `time' from the console input.

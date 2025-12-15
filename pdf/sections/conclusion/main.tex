@@ -1,42 +1,41 @@
 \clearpage
 \section{Conclusion}\label{section:conclusion}
 
-This project demonstrates that the core ideas of Rizzo can be implemented as an embedded FRP library in OCaml. We implemented the central primitives, \texttt{delayOnce}, \texttt{later}, \texttt{channel} and \texttt{signal} values, together with a runtime that instantiates Rizzo's reactive semantics by maintaining a global signal heap and advancing signals on each input event.
+This project demonstrates that the core ideas of Rizzo can be implemented as an embedded FRP library in OCaml. We implemented the main types, \texttt{delayOnce}, \texttt{later}, \texttt{channel} and \texttt{signal}, together with a runtime that instantiates Rizzo's reactive semantics by maintaining a global signal heap.
 
 \paragraph{Summary of contributions.}
 Our main contributions are:
-(1) a type-safe OCaml encoding of Rizzo's delayed computations using GADTs, including a \todo{polymorphically} recursive \texttt{advance} function that matches the specification's behavior; and
-(2) a runtime design that integrates multiple asynchronous input sources (console, timers, and ports) with step semantics by serializing heap updates under a mutex.
-For the end user, the resulting API supports a familiar combinator style (\texttt{map}, \texttt{filter}, \texttt{sample}, \texttt{scan}, \texttt{switch}, etc.) while benefitting from Rizzo's key semantic improvements: signals update in place, which removes the need for a stable modality in common combinators while retaining the intended safety guarantees for well-behaved programs~\cite{rizzo_modal_2025}.
+(1) a type-safe OCaml implementation of Rizzo's delayed computations using GADTs.
+(2) a runtime design that integrates multiple asynchronous input sources (console, timers, and ports) with the step semantics, by serializing heap updates under a mutex.
+For the end user, the resulting API supports familiar combinators (\texttt{map}, \texttt{filter}, \texttt{sample}, \texttt{scan}, \texttt{switch}, etc.) while benefitting from Rizzo's key semantic improvements: signals update in place, which removes the need for a stable modality, while keeping well-behaved programs causal, productive, and absent of space leaks.
 
-\paragraph{What the embedding taught us.}
-A central outcome of the implementation is that embedding Rizzo in a garbage-collected host language exposes runtime concerns that are not visible in the abstract model.
-In particular, using weak references to signals ensures unused signals can be reclaimed by the GC\@. Weak references however also introduce \emph{ghost} heap entries: nodes whose weak pointers have not yet been cleared by the garbage collector, even though the corresponding signals are no longer reachable from user code. When combined with updating signals in place, these ghosts can cause problems: advancing a tail may allocate a fresh signal and overwrite an existing heap entry, causing the same work to be performed multiple times. In the presence of side effects, this can even duplicate effects.
+\paragraph{What the implementation taught us.}
+A central outcome of the implementation is that implementing Rizzo in a garbage-collected language exposes runtime concerns that are not visible in the abstract model.
+In particular, using weak references to signals ensures unused signals can be reclaimed by the GC\@. Weak references however in the combination with garbage collction, also introduce \emph{ghost} heap entries: nodes whose weak pointers have not yet been cleared by the garbage collector, even though the corresponding signals are no longer reachable from user code.
+When combined with updating signals in place, these ghosts cause problems: advancing a tail may allocate a new signal, and overwrite an existing heap entry, causing the same work to be performed multiple times. In the presence of side effects, this can even duplicate effects.
 
-Our prototype mitigates this issue by forcing a major GC cycle at the
-beginning of each time step, which reduces the persistence of unreachable
-heap entries and thus limits duplicate advancement in practice. While this
-approach is pragmatic, it also makes a key trade-off explicit: \todo{in a GC'd language, some operational properties depend not only on the semantics of the embedded language, but also on the timing and cost of collection.}
+Our implementation mitigates this issue by forcing a major GC cycle at the
+beginning of each time step, removing unreachable signals and preventing ghost entries from accumulating. 
 
 \paragraph{Limitations.}
-The current prototype is intentionally small and therefore has clear limitations. First, forcing major GC can introduce nontrivial latency and makes the cost of each tick less predictable.
-Second, when multiple channels are active concurrently, the effective event order is determined by the host scheduler; while updates are atomic, the resulting behavior is not guaranteed to be deterministic across runs.
-Third, as a library we cannot enforce purity of user code, so the usual semantic guarantees only apply to users who stay within the intended usage fragment (i.e.\ who avoid observable side effects inside signal transformations).
-Finally, the current execution model performs all reactive work on the input threads; as the heap grows, this can delay input handling (e.g.\ timer drift or back-pressure on I/O).
+The current implementation has a few limitations. First, forcing major GC can introduce nontrivial latency and makes the cost of each tick less predictable.
+Secondly, the current execution model performs all reactive work on the input threads; as the heap grows, this can delay input handling (e.g.\ timer drift or back-pressure on I/O).
+Finally, as a library we cannot enforce purity of user code, so the semantic guarantees only apply to users who stay within the intended usage fragment (i.e.\ who avoid observable side effects inside signal combinators).
 
 \paragraph{Future work.}
 There are several interesing directions for future work to address these limitations and further explore the design space:
 \begin{enumerate}
     \item \textbf{Performance and allocation:} 
-        benchmark heap traversal and advancement, and explore representations that reduce allocation during combinator stepping (thereby lowering GC pressure without forcing major collections each tick).
-    \item \textbf{Deterministic scheduling:} 
-        define and implement an explicit event ordering policy across channels (e.g.\ a single dispatcher thread with a priority/queue discipline), enabling reproducible behavior and clearer reasoning about inter-channel interactions.
-    \item \textbf{More precise resource management:} 
-        improve channel lifecycle management (startup/shutdown, cleanup of threads and sockets) and clarify when resources are retained by outputs.
+        benchmark heap traversal and advancement, and explore representations that reduce allocation during a time step.
+        With the intention of reducing the performance impact of forcing garbage collection each time step.
+    \item \textbf{Dedicated heap worker:} 
+        investigate moving heap updates to a dedicated thread, decoupling input handling from signal updates to reduce input latency.
+    \item \textbf{Channel resource management:} 
+        improve channel lifecycle management (startup/shutdown, cleanup of threads and sockets) and clarify when resources are retained by outputs. For example, when should a channel be closed if its input is from a file?
     \item \textbf{API simplification and ergonomics:} 
-        evaluate whether the public interface should expose channels directly or primarily expose signals, and whether ``later-heavy'' APIs (or a uniform representation of inputs as delayed signals) can reduce cognitive overhead without obscuring essential timing behavior.
+        evaluate whether the public interface should expose channels directly or primarily expose signals, and whether \textit{later-heavy} APIs (or a uniform representation of inputs as delayed signals) can reduce cognitive overhead without obscuring essential timing behavior.
     \item \textbf{Testing and validation:} 
         develop property-based tests that exercise causality/productivity expectations at the library boundary, and construct microbenchmarks that isolate the \textit{ghost duplication} phenomenon to quantify the impact of different mitigations.
 \end{enumerate}
 
-Overall, the implementation supports the thesis that Rizzo's operational model is not only theoretically appealing but also implementable in a mainstream functional language with a small surface API\@. At the same time, the prototype highlights that an embedding must account for the host runtime, especially garbage collection and concurrency, to preserve the intended operational behavior in practice.
+% Overall, the implementation supports the thesis that Rizzo's can be implemented in a mainstream functional language. At the same time, our implementation highlights that an embedding must account for the host runtime, especially garbage collection and concurrency, to preserve the intended operational behavior in practice.

@@ -1,3 +1,7 @@
+# 0.3.0 - 2025-12-15
+
+- Fixed bug in heap related to garbage colletcion.
+
 # 0.2.0 - 2025-12-05
 
 - Changed signal combinators to have `*L` suffix for later signals, rather than `*D`.

@@ -17,7 +17,7 @@
 
 (package
  (name rizzo)
- (version 0.2.0)
+ (version 0.3.0)
  (synopsis "FRP library implementation of Rizzo")
  (description
   "Rizzo is a Functional Reactive Programming (FRP) library implemented in OCaml.\n  It provides abstractions and tools for building reactive applications with ease and efficiency.\n  Rizzo was made as one solution to the challenges with time leaks in FRP systems.")
